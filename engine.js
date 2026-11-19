@@ -172,7 +172,7 @@ function makeKit(group,center){
       K.disc('z',R,o.x,o.h,dP+dir*1,mat.hole);
       return K.duct({axis:'z',dir,x:o.x,h:o.h,d:dC,od:o.od,len:o.len,m:o.m});
     },
-    /* flat-oval (stadium) duct along ±Z: outer w×hh, wall t, length len from face d; optional mounting plate [pw,ph]; dark bore + grille */
+    /* flat-oval (stadium) duct along ±Z: outer w×hh, wall t, length len from face d; optional mounting plate [pw,ph]; dark bore */
     stadium(o){
       const dir=o.dir||1,w=o.w,hh=o.hh,t=o.t||3,m=o.m||mat.plastic;
       const shp=(W,Hh)=>{const r=Math.min(Hh/2,W/2),s=new T.Shape(),a=W/2-r;s.moveTo(-a,-Hh/2);s.lineTo(a,-Hh/2);s.absarc(a,0,r,-PI/2,PI/2,false);s.lineTo(-a,Hh/2);s.absarc(-a,0,r,PI/2,3*PI/2,false);return s;};
@@ -186,11 +186,6 @@ function makeKit(group,center){
         [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.rod('z',4,o.x+a*(pw/2-10),o.h+b*(ph/2-10),o.d+dir*(pt+1.5),3,mat.steel,12));}
       if(o.len>s0){const s=shp(w,hh);s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:o.len-s0,bevelEnabled:false,curveSegments:20}),o.d+dir*s0);}
       const back=new T.Mesh(new T.ShapeGeometry(shp(w-2*t,hh-2*t),20),mat.hole);back.position.set(CX(o.x),o.h,CZ(o.d+dir*Math.min(10,o.len*0.3)));if(dir<0)back.rotation.y=PI;add(back);
-      if(o.grille){const n=Math.max(4,Math.round((hh-2*t)/14)),gd=o.d+dir*Math.min(14,o.len*0.45);
-        const W2=w-2*t,H2=hh-2*t,r=H2/2,a=Math.max(0,W2/2-r);
-        for(let i=1;i<n;i++){const hy=o.h-H2/2+i*H2/n,dy=hy-o.h,half=a+Math.sqrt(Math.max(0,r*r-dy*dy));
-          if(half>6)K.box(o.x-half+3,o.x+half-3,hy-1,hy+1,gd-1,gd+1,mat.grey);}
-        K.box(o.x-1.5,o.x+1.5,o.h-(hh-2*t)/2+2,o.h+(hh-2*t)/2-2,gd-1.5,gd+1.5,mat.grey);}
       return o.d+dir*o.len;
     },
     /* hanger bracket: ear at height h (top face), from face x outward to tip, centred on plan d */
