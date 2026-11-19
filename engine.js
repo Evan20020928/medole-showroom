@@ -315,7 +315,7 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 $('btnTags').onclick=e=>{state.tags=!state.tags;e.currentTarget.setAttribute('aria-pressed',state.tags);};
 $('btnDims').onclick=e=>{state.dims=!state.dims;e.currentTarget.setAttribute('aria-pressed',state.dims);if(dimGroup)dimGroup.visible=state.dims;};
 const sheet=$('sheet');
-$('sheetToggle').onclick=()=>{const c=sheet.dataset.collapsed!=='true';sheet.dataset.collapsed=c;$('sheetToggle').setAttribute('aria-expanded',!c);$('sheetArrow').textContent=c?'▴':'▾';};
+$('sheetToggle').onclick=()=>{const c=sheet.dataset.collapsed!=='true';sheet.dataset.collapsed=c;$('sheetToggle').setAttribute('aria-expanded',!c);};
 
 /* ---------- spec sheet ---------- */
 const OPT='選購';

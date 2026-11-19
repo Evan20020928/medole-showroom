@@ -117,6 +117,10 @@ button svg{width:16px;height:16px}
   .sheet[data-collapsed="true"] .body{display:none}
   .sheet-toggle{display:flex;justify-content:space-between;width:100%;padding:0;font:700 13px/1 var(--f-body);letter-spacing:.12em;color:var(--muted)}
   .sheet-toggle:hover{background:transparent}
+  .sheet-toggle{align-items:center;min-height:44px}
+  .sheet-arrow{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--chip);border:1px solid var(--line);color:var(--fg);flex:none}
+  .sheet-arrow svg{width:22px;height:22px;transition:transform .2s ease}
+  .sheet-toggle[aria-expanded="true"] .sheet-arrow svg{transform:rotate(180deg)}
   .sheet > h2.wide{display:none}
   .console{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));transform:none;max-width:none;
     flex-wrap:nowrap;justify-content:space-between;gap:2px;padding:5px;overflow-x:auto;scrollbar-width:none;bottom:max(10px,env(safe-area-inset-bottom,0px))}
@@ -192,7 +196,7 @@ html.solo .modelbtn{display:none}
   .console button{min-height:40px}
 }
 @media (hover:none){button,.chip,.pk{-webkit-tap-highlight-color:transparent;touch-action:manipulation}}
-@media (prefers-reduced-motion:reduce){.tag{transition:none}}
+@media (prefers-reduced-motion:reduce){.tag,.sheet-arrow svg{transition:none}}
 .err{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
 </style>
 </head>
@@ -219,7 +223,7 @@ html.solo .modelbtn{display:none}
   </header>
 
   <aside class="sheet" id="sheet" data-collapsed="true">
-    <button class="sheet-toggle" id="sheetToggle" aria-expanded="false" aria-controls="sheetBody">規格與組合 <span id="sheetArrow">▴</span></button>
+    <button class="sheet-toggle" id="sheetToggle" aria-expanded="false" aria-controls="sheetBody">規格與組合 <span class="sheet-arrow" id="sheetArrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
     <h2 class="wide">規格與組合</h2>
     <div class="body" id="sheetBody">
       <section class="sec" id="variantBox" hidden>
