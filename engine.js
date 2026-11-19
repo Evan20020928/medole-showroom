@@ -361,18 +361,34 @@ function renderSheet(id,def,v){
   renderShare(id,v);
 }
 const MULTI=CFG.mode==='hub'||CFG.mode==='app';
-let SOLO=false;   // app: link opened as "#solo-<model>-<variant>" shows one model only (no model menu)
+let SOLO=false;   // only one model allowed -> no model menu
 const slugOf=id=>{const def=REG[id];return (def&&def.slug)||id.toLowerCase();};
+/* ---------- limited share links (app) ----------
+   "#set-<token>/<model>-<variant>" opens the app with only the models in <token> (bitmask over CFG.models + 2-char check).
+   The device remembers the latest valid set (localStorage), so dropping the hash or re-opening the app keeps the limit.
+   A newer valid set link replaces it; "#reset-all" clears it (owner's own device). */
+const SETS=CFG.mode==='app',SET_KEY='medole-showroom-set';
+let ALLOWED=null,SETTOK='';
+function setCheck(m){let x=(m^0x5bd1e995)>>>0;x=Math.imul(x^(x>>>15),0x2c1b3c6d)>>>0;x=Math.imul(x^(x>>>12),0x297a2d39)>>>0;return ((x^(x>>>15))>>>0)%1296;}
+function encSet(ids){let m=0;ids.forEach(id=>{const i=CFG.models.indexOf(id);if(i>=0)m|=1<<i;});return m.toString(36)+('0'+setCheck(m).toString(36)).slice(-2);}
+function decSet(tok){if(!tok||!/^[0-9a-z]{3,8}$/.test(tok))return null;const m=parseInt(tok.slice(0,-2),36),c=parseInt(tok.slice(-2),36);
+  if(!m||setCheck(m)!==c)return null;const ids=CFG.models.filter((id,i)=>m&(1<<i));return ids.length?ids:null;}
+function storeSet(tok){try{if(tok)localStorage.setItem(SET_KEY,tok);else localStorage.removeItem(SET_KEY);}catch(e){}}
+function storedSet(){try{return localStorage.getItem(SET_KEY)||'';}catch(e){return '';}}
+function useSet(tok){const ids=decSet(tok);const was=SETTOK;ALLOWED=ids;SETTOK=ids?tok:'';if(was!==SETTOK&&typeof onSetChange==='function')onSetChange();}
+const POOL=()=>ALLOWED||CFG.models;
 function hashFor(id,v){const vk=v&&v.key?v.key:'';
-  if(MULTI)return (SOLO?'solo-':'')+slugOf(id)+(vk?'-'+vk:'');return vk;}
+  if(MULTI)return (ALLOWED?'set-'+SETTOK+'/':'')+slugOf(id)+(vk?'-'+vk:'');return vk;}
+function setUrl(tok,id,vk){return location.href.split('#')[0]+'#set-'+tok+(id?'/'+slugOf(id)+(vk?'-'+vk:''):'');}
 function shareUrl(id,v){const h=v&&v.key?v.key:'';
-  if(CFG.mode==='app')return location.href.split('#')[0]+'#solo-'+slugOf(id)+(h?'-'+h:'');
+  if(CFG.mode==='app')return setUrl(ALLOWED?SETTOK:encSet([id]),id,h);
   const base=CFG.mode==='hub'?(CFG.links||{})[id]:CFG.self;if(!base)return '';return base+(h?'#'+h:'');}
 function renderShare(id,v){
   const url=shareUrl(id,v),box=$('shareBox');
-  if(!url||SOLO){box.hidden=!MULTI||SOLO;$('shareUrl').textContent='這個型號還沒有獨立頁面。';$('btnCopy').disabled=true;return;}
+  if(!url){box.hidden=!MULTI;$('shareUrl').textContent='這個型號還沒有獨立頁面。';$('btnCopy').disabled=true;return;}
   box.hidden=false;$('btnCopy').disabled=false;$('shareUrl').textContent=url;
-  $('shareHint').textContent=(v&&v.key?'連結會直接開啟「'+variantName(REG[id],v)+'」。':'')+(MULTI?'對方只會看到這個型號。':'');
+  const n=ALLOWED?ALLOWED.length:1;
+  $('shareHint').textContent=(v&&v.key?'連結會直接開啟「'+variantName(REG[id],v)+'」。':'')+(MULTI?(n>1?'對方會看到同樣的 '+n+' 款型號。':'對方只會看到這個型號。'):'');
 }
 $('btnCopy').onclick=()=>{const t=$('shareUrl').textContent,done=()=>{$('btnCopy').textContent='已複製';setTimeout(()=>$('btnCopy').textContent='複製連結',1600);};
   try{navigator.clipboard.writeText(t).then(done,()=>selectText());}catch(e){selectText();}};
@@ -413,12 +429,21 @@ function fromHash(){
   let h=decodeURIComponent((location.hash||'').slice(1)).toLowerCase();
   const ids=CFG.models;
   if(MULTI){
-    SOLO=false;if(CFG.mode==='app'&&h.indexOf('solo-')===0){SOLO=true;h=h.slice(5);}
-    let best=null;ids.forEach(id=>{const slug=slugOf(id);if(h===slug||h.indexOf(slug+'-')===0){if(!best||slug.length>best.slug.length)best={id,slug};}});
-    if(!best)SOLO=false;
+    if(SETS){
+      const m=h.match(/^set-([0-9a-z]+)(?:\/(.*))?$/);
+      if(h==='reset-all'){storeSet('');useSet('');h='';}
+      else if(m&&decSet(m[1])){storeSet(m[1]);useSet(m[1]);h=m[2]||'';}
+      else if(h.indexOf('solo-')===0){h=h.slice(5);   // older single-model links: honoured as a one-model set unless this device already has a limit
+        const had=storedSet();if(had&&decSet(had))useSet(had);
+        else{const hit=CFG.models.filter(id=>h===slugOf(id)||h.indexOf(slugOf(id)+'-')===0).sort((x,y)=>slugOf(y).length-slugOf(x).length)[0];
+          if(hit){const t=encSet([hit]);storeSet(t);useSet(t);}else useSet('');}}
+      else{if(m)h=m[2]||'';useSet(storedSet());}
+    }
+    const pool=POOL();SOLO=!!ALLOWED&&ALLOWED.length===1;
+    let best=null;pool.forEach(id=>{const slug=slugOf(id);if(h===slug||h.indexOf(slug+'-')===0){if(!best||slug.length>best.slug.length)best={id,slug};}});
     applySolo();
     if(best)return {id:best.id,v:h.slice(best.slug.length+1)||null};
-    return {id:CFG.start||ids[0],v:null};
+    return {id:ALLOWED?pool[0]:(CFG.start||ids[0]),v:null};
   }
   return {id:ids[0],v:h||null};
 }
@@ -428,24 +453,77 @@ function openPicker(){const pk=$('picker');pk.hidden=false;
   pk.querySelectorAll('.pk').forEach(b=>b.setAttribute('aria-current',b.dataset.id===current.id?'true':'false'));
   const cur=pk.querySelector('.pk[aria-current="true"]')||pk.querySelector('.pk');if(cur){cur.focus();if(cur.scrollIntoView)cur.scrollIntoView({block:'nearest'});}}
 function closePicker(){const pk=$('picker');if(pk.hidden)return;pk.hidden=true;$('modelBtn').focus();}
-if(MULTI){
-  const groups=[['小型 30–40 L/日',id=>+(DATA.specs[id]||{}).cap30<=40],['中型 70–100 L/日',id=>{const c=+(DATA.specs[id]||{}).cap30;return c>40&&c<=100;}],['大型 130 L/日以上',id=>+(DATA.specs[id]||{}).cap30>100]];
-  $('pickerList').innerHTML=groups.map(([title,fn])=>{const items=CFG.models.filter(fn);if(!items.length)return '';
+const GROUPS=[['小型 30–40 L/日',id=>+(DATA.specs[id]||{}).cap30<=40],['中型 70–100 L/日',id=>{const c=+(DATA.specs[id]||{}).cap30;return c>40&&c<=100;}],['大型 130 L/日以上',id=>+(DATA.specs[id]||{}).cap30>100]];
+const capOf=id=>+(DATA.specs[id]||{}).cap30;
+const PRESETS=[['30–70 L',id=>capOf(id)>=30&&capOf(id)<=70],['小型 30–40 L',id=>capOf(id)<=40],['中型 70–100 L',id=>capOf(id)>40&&capOf(id)<=100],['大型 130 L 以上',id=>capOf(id)>100],['全選',()=>true],['清除',()=>false]];
+let picking=null;   // Set of model ids while building a limited share link
+function renderPicker(){
+  if(!MULTI)return;
+  const pool=POOL();
+  $('pickerList').innerHTML=GROUPS.map(([title,fn])=>{const items=pool.filter(fn);if(!items.length)return '';
     return '<li class="pk-group"><h3>'+esc(title)+'</h3><ul>'+items.map(id=>{const s=DATA.specs[id]||{},def=REG[id];
       const n=def?(def.variants&&!def.variants.fixed?variantKeys(def).length+' 種組合':'標配'):'建模中';
       return '<li><button type="button" class="pk" data-id="'+esc(id)+'"><span class="pk-sw '+esc(def?def.finish:'')+'" aria-hidden="true"></span><b>'+esc(id)+'</b>'+
-        '<span class="pk-meta">'+esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH</span><span class="pk-n">'+esc(n)+'</span></button></li>';}).join('')+'</ul></li>';}).join('');
-  document.querySelectorAll('#pickerList .pk').forEach(b=>b.onclick=()=>{closePicker();select(b.dataset.id,null,true);});
+        '<span class="pk-meta">'+esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
+  document.querySelectorAll('#pickerList .pk').forEach(b=>b.onclick=()=>{
+    if(picking){const id=b.dataset.id;if(picking.has(id))picking.delete(id);else picking.add(id);syncPicking();return;}
+    closePicker();select(b.dataset.id,null,true);});
+  $('pickerTitle').textContent=ALLOWED?'選擇型號（'+pool.length+' 款）':'選擇型號';
+  const tool=$('setTool');if(tool)tool.hidden=!SETS||!!ALLOWED;
+  if(ALLOWED)stopPicking();
+}
+function syncPicking(){
+  const pk=$('picker'),on=!!picking;pk.classList.toggle('choosing',on);$('setPanel').hidden=!on;$('btnSetMode').hidden=on;
+  $('pickerTitle').textContent=on?'勾選要開放的型號':(ALLOWED?'選擇型號（'+POOL().length+' 款）':'選擇型號');
+  pk.querySelectorAll('.pk').forEach(b=>{if(on)b.setAttribute('aria-pressed',picking.has(b.dataset.id)?'true':'false');else b.removeAttribute('aria-pressed');});
+  if(!on)return;
+  const ids=CFG.models.filter(id=>picking.has(id));
+  $('setPresets').querySelectorAll('button').forEach((b,i)=>{const fn=PRESETS[i][1],want=CFG.models.filter(fn);
+    b.setAttribute('aria-pressed',i<4&&want.length===ids.length&&want.every(id=>picking.has(id))?'true':'false');});
+  const ok=ids.length>0,first=ids.indexOf(current.id)>=0?current.id:ids[0];
+  $('setUrl').textContent=ok?setUrl(encSet(ids),first,''):'請至少勾選一款型號。';
+  $('btnSetCopy').disabled=!ok;
+  $('setHint').textContent=ok?'已選 '+ids.length+' 款：'+ids.join('、')+'。對方打開後只看得到這些型號，之後重新開啟也一樣。':'';
+}
+function startPicking(){picking=new Set(CFG.models.filter(PRESETS[0][1]));syncPicking();const f=$('picker').querySelector('.pk');if(f)f.focus();}
+function stopPicking(){picking=null;if($('setPanel'))syncPicking();}
+function onSetChange(){renderPicker();applySetManifest();}
+function openPicker(){const pk=$('picker');pk.hidden=false;
+  pk.querySelectorAll('.pk').forEach(b=>b.setAttribute('aria-current',b.dataset.id===current.id?'true':'false'));
+  const cur=pk.querySelector('.pk[aria-current="true"]')||pk.querySelector('.pk');if(cur){cur.focus();if(cur.scrollIntoView)cur.scrollIntoView({block:'nearest'});}}
+function closePicker(){const pk=$('picker');if(pk.hidden)return;pk.hidden=true;stopPicking();$('modelBtn').focus();}
+if(MULTI){
+  renderPicker();
   $('modelBtn').onclick=openPicker;$('pickerClose').onclick=closePicker;
   $('picker').addEventListener('click',e=>{if(e.target===$('picker'))closePicker();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closePicker();});
+  if(SETS&&$('setTool')){
+    $('setPresets').innerHTML=PRESETS.map(([t])=>'<button type="button" class="chip mini">'+esc(t)+'</button>').join('');
+    $('setPresets').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{picking=new Set(CFG.models.filter(PRESETS[i][1]));syncPicking();});
+    $('btnSetMode').onclick=startPicking;$('btnSetDone').onclick=stopPicking;
+    $('btnSetCopy').onclick=()=>{const t=$('setUrl').textContent,b=$('btnSetCopy'),done=()=>{b.textContent='已複製';setTimeout(()=>b.textContent='複製連結',1600);};
+      const sel=()=>{const r=document.createRange();r.selectNodeContents($('setUrl'));const s=getSelection();s.removeAllRanges();s.addRange(r);};
+      try{navigator.clipboard.writeText(t).then(done,sel);}catch(e){sel();}};
+  }
+}
+/* iPhone home-screen apps keep their own storage, so a limited link must survive "加入主畫面" through the start URL itself */
+const IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function applySetManifest(){
+  if(!SETS||!IOS)return;const l=document.querySelector('link[rel="manifest"]');if(!l)return;
+  if(!l.dataset.orig)l.dataset.orig=l.getAttribute('href');
+  if(!ALLOWED){l.setAttribute('href',l.dataset.orig);return;}
+  const tok=SETTOK,src=new URL(l.dataset.orig,location.href).href,base=location.href.split('#')[0];
+  fetch(src).then(r=>r.json()).then(j=>{if(SETTOK!==tok)return;
+    j.start_url=base+'#set-'+tok;j.scope=new URL('./',base).href;j.id=new URL('./',base).href+'?set='+tok;
+    j.icons=(j.icons||[]).map(i=>Object.assign({},i,{src:new URL(i.src,src).href}));
+    l.setAttribute('href','data:application/manifest+json,'+encodeURIComponent(JSON.stringify(j)));}).catch(()=>{});
 }
 /* ---------- installable app (PWA) ---------- */
 let deferredInstall=null,refreshInstall=null;
 if(CFG.mode==='app'){
   const ib=$('btnInstall'),standalone=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
-  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  refreshInstall=()=>{ib.hidden=SOLO||standalone()||!(deferredInstall||ios);};
+  const ios=IOS;
+  refreshInstall=()=>{ib.hidden=standalone()||!(deferredInstall||ios);};
   window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;refreshInstall();});
   window.addEventListener('appinstalled',()=>{deferredInstall=null;refreshInstall();});
   ib.onclick=()=>{if(deferredInstall){deferredInstall.prompt();Promise.resolve(deferredInstall.userChoice).catch(()=>{}).then(()=>{deferredInstall=null;refreshInstall();});}else $('iosHelp').hidden=false;};
@@ -457,7 +535,8 @@ if(CFG.mode==='app'){
   if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
   refreshInstall();
 }
-window.addEventListener('hashchange',()=>{const r=fromHash();if(r.id!==current.id||r.v!==current.v)select(r.id,r.v,false);});
+window.addEventListener('hashchange',()=>{const r=fromHash();if(r.id!==current.id||r.v!==current.v){select(r.id,r.v,true);return;}
+  const def=REG[current.id],h=hashFor(current.id,def?parseVariant(def,current.v):null);if(location.hash!=='#'+h){try{history.replaceState(null,'','#'+h);}catch(e){}}});
 
 /* ---------- theme sync ---------- */
 function isDark(){const t=document.documentElement.dataset.theme;return t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);}
@@ -477,7 +556,7 @@ function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)ret
   if(camera.setViewOffset){if(viewOff)camera.setViewOffset(w,h,viewOff,0,w,h);else if(camera.clearViewOffset)camera.clearViewOffset();}
   camera.updateProjectionMatrix();}
 resize();
-const boot=fromHash();select(boot.id,boot.v,true);orbit.r=orbit.rGoal=fitRadius();
+const boot=fromHash();renderPicker();applySetManifest();select(boot.id,boot.v,true);orbit.r=orbit.rGoal=fitRadius();
 new ResizeObserver(()=>{const fit=fitRadius();resize();if(Math.abs(orbit.rGoal-fit)/fit<0.35)orbit.rGoal=fitRadius();}).observe(canvas);
 setPlaying(state.playing);
 if(matchMedia('(min-width: 761px)').matches)sheet.dataset.collapsed='false';
