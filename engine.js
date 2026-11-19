@@ -150,7 +150,6 @@ function makeKit(group,center){
       const b=at(0);K.lathe(ax,dir,b[0],b[1],b[2],prof,m);
       const mid=at((s0+L)/2);K.rod(ax,R-1.6,mid[0],mid[1],mid[2],L-s0,mat.hole,56,true);
       const bk=at(s0+Math.min(24,L*0.4));K.disc(ax,R-1.6,bk[0],bk[1],bk[2],mat.hole);
-      if(o.blade){const bp=at(s0+L*0.45);const bl=ax==='z'?K.box(o.x-R+6,o.x+R-6,o.h-1.5,o.h+1.5,bp[2]-R*0.35,bp[2]+R*0.35,m):K.box(bp[0]-R*0.35,bp[0]+R*0.35,o.h-1.5,o.h+1.5,o.d-R+6,o.d+R-6,m);bl.rotation[ax==='z'?'x':'z']=0.2;}
       return at(L);
     },
     /* rounded-rect plate -> loft -> round collar along +/-Z (8" outlet style) */
@@ -171,7 +170,7 @@ function makeKit(group,center){
       const lg=new T.BufferGeometry();lg.setAttribute('position',new T.Float32BufferAttribute(pos,3));lg.setIndex(idx);lg.computeVertexNormals();
       add(shade(new T.Mesh(lg,o.m||mat.plastic)));
       K.disc('z',R,o.x,o.h,dP+dir*1,mat.hole);
-      return K.duct({axis:'z',dir,x:o.x,h:o.h,d:dC,od:o.od,len:o.len,blade:true,m:o.m});
+      return K.duct({axis:'z',dir,x:o.x,h:o.h,d:dC,od:o.od,len:o.len,m:o.m});
     },
     /* flat-oval (stadium) duct along ±Z: outer w×hh, wall t, length len from face d; optional mounting plate [pw,ph]; dark bore + grille */
     stadium(o){
