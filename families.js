@@ -1,0 +1,131 @@
+/* Shared family builders. Plan coords mm relative to the main body: x from body left edge, d from body back face (+d toward the outlet face), h up. */
+(function(){
+const F=window.MEDOLE_FAMILIES=window.MEDOLE_FAMILIES||{};
+
+/* Family A: MD-30LB / MD-A40LB / MD-40LBD / MD-70LBD — control box on the left end, hanger brackets on both ends,
+   8" oval outlet on the front face, natural return through a back filter or an optional return box. */
+F.A=function(K,P,v){
+  const m=K.mat,H=P.H,L=P.body.L,D=P.body.D;
+  /* cabinet */
+  K.box(0,L,P.base,H,0,D,m.body,4);
+  K.box(4,L-4,0,P.base,4,D-4,m.seam);
+  K.box(0,L,P.base,P.base+1.5,P.body.seam-1,P.body.seam+1,m.seam);           // front lower panel seam
+  P.ribs.forEach(([d0,d1])=>K.box(2,L-2,H,H+3,d0,d1,m.body2));               // top lid stiffening ribs
+  /* control box, gland, lamp */
+  const C=P.ctrl;K.box(C.x0,C.x1,P.base,H,C.d0,C.d1,m.body2,3);
+  K.box(C.gx0,C.x0,C.gh0,C.gh1,C.d0,C.gd1,m.body);
+  K.rod('z',10,C.x0+13,C.lampH,C.d1+3,6,m.led,24);
+  /* hanger brackets (ear at holes.h) */
+  const HB=P.holes;
+  HB.d.forEach(d=>{K.bracket(0,P.brL,d,P.brW,HB.h,28);K.bracket(L,P.brR,d,P.brW,HB.h,28);HB.x.forEach(x=>K.hole(x,d,HB.h,6));});
+  /* drain head on the back face */
+  K.rod('z',14,P.drain.x,P.drain.h,-P.drain.len/2,P.drain.len,m.plastic,32);K.disc('z',10,P.drain.x,P.drain.h,-P.drain.len-0.3,m.hole);
+  /* front face: screws, nameplate */
+  P.screws.x.forEach(x=>P.screws.h.forEach(h=>K.rod('z',4.5,x,h,D+1.5,3,m.steel,14)));
+  K.nameplate(P.plate.x,P.plate.h,D+0.8,150,40,'z+',P.id,P.plate.sub);
+
+  /* ---------- supply (front face d=D) ---------- */
+  const O=P.outlet,sid=v.supply?v.supply.id:'s1';let sTip,sTag;
+  if(sid==='s1'){
+    K.ovalDuct({x:O.x,d:D,dir:1,hPlate:O.hPlate,h:O.h,plateW:O.pw,plateH:O.ph,plateT:O.t,cone:O.cone,od:193,len:O.len});
+    sTip=D+O.t+O.cone+O.len;sTag=[O.x,O.h+97+24];
+  }else{
+    const S=P.supply[sid];
+    const dF=D+S.df;
+    if(S.box){K.box(S.box[0],S.box[1],S.h[0],S.h[1],D,dF,m.body2,4);}
+    else{K.frustumZ(D,[S.back[0],S.back[1],S.hb[0],S.hb[1]],dF,[S.front[0],S.front[1],S.hf[0],S.hf[1]],m.body2);}
+    let top=0;
+    S.ducts.forEach(([x,h,od,len])=>{K.duct({axis:'z',dir:1,x,h,d:dF,od,len,plate:[od+8,od+8],plateT:3});top=Math.max(top,h+od/2);});
+    sTip=dF+Math.max(...S.ducts.map(q=>q[3]));sTag=[(S.ducts[0][0]+S.ducts[S.ducts.length-1][0])/2,top+24];
+  }
+  K.tag(sTag[0],sTag[1],sTip,[0,0,1],'SA',(v.supply?v.supply.name+' '+v.supply.spec:'出風 8"'));
+
+  /* ---------- return (back face d=0) ---------- */
+  const rid=v.ret?v.ret.id:'r0';let rTip,rTag;
+  const RB=P.ret;
+  if(rid==='r0'){
+    const Fi=P.filter;K.box(Fi.x0,Fi.x1,Fi.h0,Fi.h1,Fi.d0,0,m.body2);
+    K.box(Fi.x0+10,Fi.x1-10,Fi.h0+10,Fi.h1-10,Fi.d0-0.6,Fi.d0+1,m.seam);
+    rTip=Fi.d0;rTag=[(Fi.x0+Fi.x1)/2,Fi.h1+30];
+    K.tag(rTag[0],rTag[1],rTip,[0,0,-1],'RA','自然回風・濾網');
+  }else{
+    const R=RB[rid];K.box(R.box[0],R.box[1],RB.h[0],RB.h[1],R.d0,0,m.body2,4);
+    if(R.oval){const o=R.oval;K.ovalDuct({x:o.x,d:R.d0,dir:-1,hPlate:RB.hc,h:RB.hc,plateW:o.pw,plateH:148,plateT:o.t,cone:o.cone,od:193,len:o.len});
+      rTip=R.d0-o.t-o.cone-o.len;rTag=[o.x,RB.hc+97+24];}
+    else{R.ducts.forEach(([x,od,len])=>K.duct({axis:'z',dir:-1,x,h:RB.hc,d:R.d0,od,len,flare:true,flareR:od>120?12:7}));
+      rTip=R.d0-Math.max(...R.ducts.map(q=>q[2]));rTag=[(R.ducts[0][0]+R.ducts[R.ducts.length-1][0])/2,RB.hc+73+24];}
+    K.tag(rTag[0],rTag[1],rTip,[0,0,-1],'RA',v.ret.name+' '+v.ret.spec);
+  }
+  K.tag(P.drain.x,P.drain.h+40,-P.drain.len,[0,0,-1],'3/4"','排水頭');
+  K.tag(C.gx0,H*0.8,(C.d0+C.d1)/2,[-1,0,0],'CB','控制盒');
+
+  /* dimensions */
+  const xL=C.gx0,xR=P.brR,dF=Math.max(sTip,D),dB=Math.min(rTip,0);
+  K.dim([xL,0,dF],[xR,0,dF],[0,0,90],String(P.overall.W));
+  K.dim([HB.x[0],HB.h,HB.d[0]],[HB.x[1],HB.h,HB.d[0]],[0,0,-(HB.d[0]-dB)-120],String(P.overall.hole));
+  K.dim([xR,0,dB],[xR,0,dF],[90,0,0],String(Math.round(dF-dB)));
+  K.dim([0,0,D],[0,H,D],[0,0,120],String(H));
+};
+})();
+
+/* ---------- small shared parts for the single-configuration models ---------- */
+(function(){
+const F=window.MEDOLE_FAMILIES;
+/* hanger ears on both ends (ear top at h), with round hole + rubber washer */
+F.ears=function(K,o){const m=K.mat;o.d.forEach(d=>{K.bracket(o.faceL,o.tipL,d,o.w,o.h,o.leg||28);K.bracket(o.faceR,o.tipR,d,o.w,o.h,o.leg||28);o.x.forEach(x=>K.hole(x,d,o.h,6));});};
+/* flat base plates under both ends with slotted holes (長圓孔) */
+F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>{
+  K.box(o.xL[0],o.xL[1],0,t,d-o.w/2,d+o.w/2,m.body2);K.box(o.xR[0],o.xR[1],0,t,d-o.w/2,d+o.w/2,m.body2);
+  o.slot.forEach(x=>{K.box(x-6,x+6,t-0.5,t+0.6,d-14,d+14,m.hole);});});};
+/* natural-return filter frame on the back face (d1 = body back face) */
+F.filter=function(K,o){const m=K.mat;K.box(o.x0,o.x1,o.h0,o.h1,o.d0,o.d1,m.body2);K.box(o.x0+10,o.x1-10,o.h0+10,o.h1-10,o.d0-0.6,o.d0+1,m.seam);};
+/* drain head: axis 'z' (back face, dir -1) or 'x' (left end, dir -1) */
+F.drain=function(K,o){const m=K.mat,len=o.len||26;
+  if(o.axis==='x'){K.rod('x',13,o.x-len/2,o.h,o.d,len,m.plastic,28);K.disc('x',9,o.x-len-0.3,o.h,o.d,m.hole);return [o.x-len,o.h,o.d];}
+  K.rod('z',13,o.x,o.h,o.d-len/2,len,m.plastic,28);K.disc('z',9,o.x,o.h,o.d-len-0.3,m.hole);return [o.x,o.h,o.d-len];};
+F.screws=function(K,list,d){list.forEach(([x,h])=>K.rod('z',4.5,x,h,d+1.5,3,K.mat.steel,14));};
+})();
+
+/* Family C: tall white units with flat-oval 10" flanges (MD-130LB, MD-210LB, MD-250LB, MD-300LBD).
+   Plan from DXF blocks (origin = overall left / back-most point), heights from catalog p.16–18. */
+(function(){
+const F=window.MEDOLE_FAMILIES;
+F.C=function(K,P,v){
+  const m=K.mat,H=P.H,B=P.body;
+  K.box(B.x0,B.x1,P.base,H,B.d0,B.d1,m.body,4);
+  K.box(B.x0,B.x1,0,P.base,B.d0+20,B.d1-20,m.seam);
+  K.box(B.x0,B.x1,P.base,P.base+1.5,B.seam-1,B.seam+1,m.seam);
+  F.basePlates(K,{xL:[0,B.x0],xR:[B.x1,P.L],d:P.plates.d,w:P.plates.w,slot:P.plates.slot});
+  /* front-mounted control box (電氣蓋) */
+  const C=P.ctrl;K.box(C.x0,C.x1,C.h0,C.h1,B.d1,B.d1+C.dd,m.body2,3);
+  K.rod('z',9,C.x0+24,C.h1-40,B.d1+C.dd+3,6,m.led,24);
+  [[C.x0+12,C.h0+12],[C.x1-12,C.h0+12],[C.x0+12,C.h1-12],[C.x1-12,C.h1-12]].forEach(([x,h])=>K.rod('z',3.5,x,h,B.d1+C.dd+1.5,3,m.steel,10));
+  /* supply: boxes with flat-oval outlets */
+  let sTip=B.d1,sTop=0;
+  P.supply.forEach(s=>{
+    K.box(s.x0,s.x1,s.h0,s.h1,B.d1,B.d1+s.dd,m.body2,3);
+    const cx=(s.x0+s.x1)/2,ch=s.oh||(s.h0+s.h1)/2,face=B.d1+s.dd;
+    const tip=K.stadium({x:cx,h:ch,d:face,dir:1,w:s.ow,hh:s.ohh,len:s.olen||6,t:4,plate:s.plate||null,grille:true,m:m.plastic});
+    sTip=Math.max(sTip,tip);sTop=Math.max(sTop,ch+s.ohh/2);});
+  const sx=(P.supply[0].x0+P.supply[P.supply.length-1].x1)/2;
+  K.tag(sx,sTop+30,sTip,[0,0,1],'SA',P.supplyName);
+  /* return side */
+  const rid=v.ret?v.ret.id:(P.ret?'rb':'r0');
+  if(rid==='r0'){F.filter(K,P.filter);K.tag((P.filter.x0+P.filter.x1)/2,P.filter.h1+28,P.filter.d0,[0,0,-1],'RA','自然回風・濾網');}
+  else{const R=P.ret;K.box(R.x0,R.x1,R.h0,R.h1,R.d0,B.d0,m.body2,4);
+    R.x.forEach(x=>K.stadium({x,h:R.h,d:R.d0,dir:-1,w:R.w,hh:R.hh,len:R.len,t:3,plate:R.plate,m:m.plastic}));
+    K.tag((R.x[0]+R.x[R.x.length-1])/2,R.h+R.hh/2+30,R.d0-R.len,[0,0,-1],'RA',P.retName);
+    if(P.topFilter)K.box(P.topFilter[0],P.topFilter[1],H,H+3,P.topFilter[2],P.topFilter[3],m.body2);}
+  /* drain on the left end face */
+  const dr=F.drain(K,{axis:'x',x:B.x0,d:P.drain.d,h:P.drain.h,len:22});
+  K.tag(dr[0],P.drain.h+40,P.drain.d,[-1,0,0],'3/4"','排水頭');
+  K.tag((C.x0+C.x1)/2,C.h1+30,B.d1+C.dd,[0,0,1],'CB','控制盒');
+  if(P.screws)F.screws(K,P.screws,B.d1);
+  K.nameplate(P.plate.x,P.plate.h,B.d1+0.8,150,40,'z+',P.id,P.plate.sub);
+  /* dims */
+  const dB=rid==='r0'?P.filter.d0:P.ret.d0-P.ret.len;
+  K.dim([0,0,sTip],[P.L,0,sTip],[0,0,90],String(P.dimL));
+  K.dim([P.L,0,dB],[P.L,0,sTip],[90,0,0],String(P.dimD&&rid!=='r0'?P.dimD:Math.round(sTip-dB)));
+  K.dim([B.x0,0,B.d1],[B.x0,H,B.d1],[0,0,150],String(H));
+};
+})();

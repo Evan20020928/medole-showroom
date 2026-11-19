@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="米多力吊隱式除濕機全系列 3D 旋轉展示台：13 種型號、出回風組合切換、規格與尺寸。">
+<meta name="theme-color" content="#0e6f78">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="米多力展示台">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html,body{margin:0}body{font:14px/1.4 system-ui,sans-serif;-webkit-text-size-adjust:100%;overscroll-behavior:none;-webkit-user-select:none;user-select:none}.share code,.spec{-webkit-user-select:text;user-select:text}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>米多力除濕機 3D 展示台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-bleed 3D stage; product name top-left, spec sheet docked right (bottom sheet on phones), turntable console bar at the bottom. */
+:root{
+  --bg:#e7eeee; --bg-2:#fbfdfd; --fg:#132022; --muted:#55686a; --line:rgba(19,32,34,.13);
+  --panel:rgba(255,255,255,.82); --panel-solid:#ffffff; --accent:#0e6f78; --accent-ink:#ffffff;
+  --glow:#2fb3b6; --note-bg:#e2f2f1; --note-fg:#0b5960; --chip:#f1f5f5;
+  --f-display:"Archivo","Noto Sans TC",system-ui,sans-serif;
+  --f-body:"Noto Sans TC",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1112; --bg-2:#192426; --fg:#e3eeee; --muted:#8ea3a4; --line:rgba(227,238,238,.13);
+  --panel:rgba(17,25,26,.82); --panel-solid:#131c1d; --accent:#47c7c6; --accent-ink:#04201f;
+  --glow:#47c7c6; --note-bg:#123234; --note-fg:#9fe0dd; --chip:#18292b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1112; --bg-2:#192426; --fg:#e3eeee; --muted:#8ea3a4; --line:rgba(227,238,238,.13);
+  --panel:rgba(17,25,26,.82); --panel-solid:#131c1d; --accent:#47c7c6; --accent-ink:#04201f;
+  --glow:#47c7c6; --note-bg:#123234; --note-fg:#9fe0dd; --chip:#18292b; color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);overflow:hidden}
+.stage{position:fixed;inset:0;background:radial-gradient(120% 90% at 42% 38%,var(--bg-2) 0%,var(--bg) 62%)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl.dragging{cursor:grabbing}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;white-space:nowrap;font:500 12px/1.2 var(--f-body);color:var(--fg);background:var(--panel);border:1px solid var(--line);
+  padding:5px 8px;border-radius:6px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;gap:6px;align-items:baseline;transition:opacity .15s}
+.tag b{font:700 11px/1 var(--f-mono);letter-spacing:.04em;color:var(--accent)}
+.tag i{font:400 10px/1 var(--f-body);font-style:normal;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:2px 3px}
+.dim{position:absolute;left:0;top:0;font:500 12px/1 var(--f-mono);color:var(--accent);background:var(--panel-solid);padding:3px 6px;border-radius:4px;border:1px solid var(--line);font-variant-numeric:tabular-nums}
+
+.head{position:absolute;top:max(16px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));max-width:min(440px,calc(100% - 32px));pointer-events:none}
+.eyebrow{font:500 12px/1 var(--f-body);letter-spacing:.18em;color:var(--muted)}
+.model{font:800 clamp(34px,6vw,58px)/.95 var(--f-display);letter-spacing:-.02em;margin:8px 0 10px;text-wrap:balance}
+.model span{color:var(--accent)}
+.kpis{display:flex;gap:18px;flex-wrap:wrap}
+.kpis div{display:flex;flex-direction:column;gap:4px}
+.kpis b{font:500 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.kpis b small{font-size:12px;color:var(--muted);margin-left:3px}
+.kpis span{font:400 11px/1 var(--f-body);letter-spacing:.08em;color:var(--muted)}
+
+.sheet{position:absolute;top:max(16px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));width:320px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  padding:16px;display:flex;flex-direction:column;gap:12px;max-height:calc(100% - 130px);overflow:auto}
+.sheet h2{font:700 13px/1 var(--f-body);letter-spacing:.12em;margin:0;color:var(--muted)}
+.body{display:flex;flex-direction:column;gap:14px}
+.sec{display:flex;flex-direction:column;gap:8px}
+.sec h3{font:700 12px/1 var(--f-body);letter-spacing:.1em;color:var(--muted);margin:0;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sec h3 output{font:700 14px/1 var(--f-body);letter-spacing:0;color:var(--accent)}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.chiplbl{font:500 11px/1 var(--f-body);color:var(--muted);margin-top:2px}
+.chip{flex-direction:column;align-items:flex-start;gap:3px;padding:7px 8px;background:var(--chip);border:1px solid var(--line);border-radius:8px;min-width:0}
+.chip b{font:700 13px/1 var(--f-body)}
+.chip span{font:400 10.5px/1.2 var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] span{color:var(--accent-ink);opacity:.85}
+.spec{display:grid;grid-template-columns:auto 1fr;gap:0;margin:0}
+.spec dt,.spec dd{padding:7px 0;border-top:1px solid var(--line);font-size:12.5px;line-height:1.35}
+.spec dt{color:var(--muted);padding-right:12px;white-space:nowrap}
+.spec dd{margin:0;text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;min-width:0}
+.spec dd small{font-size:10.5px;color:var(--muted)}
+.spec dd.txt{font-family:var(--f-body)}
+.opts{display:flex;flex-wrap:wrap;gap:5px;margin:0;padding:0;list-style:none}
+.opts li{font-size:11.5px;padding:4px 7px;border-radius:5px;background:var(--chip);border:1px solid var(--line)}
+.note{font-size:12px;line-height:1.55;color:var(--note-fg);background:var(--note-bg);border-radius:8px;padding:9px 10px;margin:0}
+.share{display:flex;flex-direction:column;gap:6px}
+.share code{font:400 11px/1.4 var(--f-mono);word-break:break-all;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:7px 8px;user-select:all;-webkit-user-select:all}
+.share p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.5}
+.readout{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:0}
+.readout div{border-top:1px solid var(--line);padding-top:8px}
+.readout dt{font:400 11px/1 var(--f-body);color:var(--muted);letter-spacing:.06em}
+.readout dd{margin:6px 0 0;font:500 20px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.src{font-size:11px;color:var(--muted);margin:0;line-height:1.5}
+.src a{color:var(--accent)}
+.sheet-toggle{display:none}
+.placeholder{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);font-size:14px;line-height:1.6;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;max-width:min(320px,80%)}
+
+.console{position:absolute;left:max(16px,env(safe-area-inset-left,0px));right:386px;margin-inline:auto;bottom:max(16px,env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);width:fit-content}
+#btnTags,#btnDims{gap:0}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center}
+.sep{width:1px;height:26px;background:var(--line)}
+button{font:500 13px/1 var(--f-body);color:var(--fg);background:transparent;border:1px solid transparent;border-radius:8px;padding:9px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button:hover{background:var(--line)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button:disabled{opacity:.45;cursor:default}
+button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+button.primary{background:var(--accent);color:var(--accent-ink);min-width:44px;justify-content:center}
+button.primary:hover{filter:brightness(1.08)}
+button.ghost{border-color:var(--line);align-self:flex-start}
+button svg{width:16px;height:16px}
+.speed{display:flex;align-items:center;gap:8px;font:500 12px var(--f-mono);color:var(--muted);padding:0 6px}
+.speed input{width:110px;accent-color:var(--accent)}
+.speed output{min-width:56px;color:var(--fg);font-variant-numeric:tabular-nums}
+
+@media (max-width:760px){
+  .sheet{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 62px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;max-height:50%;padding:12px 14px}
+  .sheet[data-collapsed="true"] .body{display:none}
+  .sheet-toggle{display:flex;justify-content:space-between;width:100%;padding:0;font:700 13px/1 var(--f-body);letter-spacing:.12em;color:var(--muted)}
+  .sheet-toggle:hover{background:transparent}
+  .sheet > h2.wide{display:none}
+  .console{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));transform:none;max-width:none;
+    flex-wrap:nowrap;justify-content:space-between;gap:2px;padding:5px;overflow-x:auto;scrollbar-width:none;bottom:max(10px,env(safe-area-inset-bottom,0px))}
+  .console::-webkit-scrollbar{display:none}
+  .console .grp{flex-wrap:nowrap;gap:1px}
+  .console button{padding:8px 8px;min-height:42px;font-size:13px;flex:none}
+  .console button.primary{min-width:42px}
+  .speed,#dirTxt,.lbl-long{display:none}
+  .sep{display:block;height:22px;flex:none}
+  .tag{font-size:11px;padding:4px 6px}
+  .kpis b{font-size:18px}
+}
+
+/* model menu, install, app chrome */
+.headbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;pointer-events:auto}
+.modelbtn,.installbtn{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-weight:700;min-height:40px}
+.installbtn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.installbtn:hover{background:var(--accent);filter:brightness(1.08)}
+.picker{position:fixed;inset:0;z-index:30;background:rgba(5,12,13,.42);display:flex;justify-content:flex-start}
+.picker-panel{background:var(--panel-solid);width:min(380px,100%);height:100%;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);box-shadow:0 0 40px rgba(0,0,0,.25)}
+.picker-head{display:flex;justify-content:space-between;align-items:center;padding:16px 12px 8px 20px}
+.picker-head h2{margin:0;font:700 18px/1 var(--f-body);letter-spacing:.06em}
+.picker-head button{width:44px;height:44px;justify-content:center;padding:0}
+.picker-list{list-style:none;margin:0;padding:4px 12px 24px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+.pk-group h3{font:700 11.5px/1 var(--f-body);letter-spacing:.14em;color:var(--muted);margin:16px 8px 8px}
+.pk-group ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.pk{width:100%;display:grid;grid-template-columns:14px 1fr auto;grid-template-rows:auto auto;column-gap:10px;row-gap:3px;align-items:center;text-align:left;
+  padding:11px 12px;border-radius:10px;border:1px solid transparent;min-height:56px}
+.pk:hover{background:var(--chip)}
+.pk[aria-current="true"]{background:var(--chip);border-color:var(--accent)}
+.pk b{font:700 15px/1.1 var(--f-display);letter-spacing:.01em}
+.pk-sw{grid-row:1/3;width:14px;height:14px;border-radius:4px;border:1px solid var(--line);background:#e6e2d6}
+.pk-sw.black{background:#1b1c1f}.pk-sw.white{background:#eef0ef}
+.pk-meta{grid-column:2;font:400 12px/1.2 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.pk-n{grid-column:3;grid-row:1/3;font:500 11.5px/1 var(--f-body);color:var(--accent);background:var(--note-bg);padding:5px 7px;border-radius:999px;white-space:nowrap}
+.ioshelp{position:fixed;inset:0;z-index:40;background:rgba(5,12,13,.5);display:grid;place-items:end center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.ioshelp-card{background:var(--panel-solid);border-radius:16px;padding:20px;width:min(420px,100%);display:flex;flex-direction:column;gap:12px}
+.ioshelp-card h2{margin:0;font:700 18px/1.2 var(--f-body)}
+.ioshelp-card ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.5}
+.ioshelp-card svg{width:16px;height:16px;vertical-align:-3px;color:var(--accent)}
+.ioshelp-card .primary{align-self:stretch;justify-content:center;min-height:44px}
+html.solo .sheet .share{display:none}
+#variantBox.fixed .chiplbl,#variantBox.fixed .chips{display:none}
+#variantBox.fixed h3{flex-direction:column;align-items:flex-start;gap:8px}
+#variantBox.fixed h3 output{font-size:13px;line-height:1.4}
+@media (max-width:760px){
+  .picker-panel{width:100%;height:86%;margin-top:auto;border-radius:16px 16px 0 0;padding-left:0}
+  .picker{align-items:flex-end}
+  .headbtns{margin-top:10px}
+  .console button{min-height:40px}
+}
+@media (hover:none){button,.chip,.pk{-webkit-tap-highlight-color:transparent;touch-action:manipulation}}
+@media (prefers-reduced-motion:reduce){.tag{transition:none}}
+.err{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+
+<div class="stage">
+  <canvas id="gl" aria-label="除濕機 3D 旋轉展示，可拖曳旋轉、滾輪縮放"></canvas>
+  <div id="labels"></div>
+  <div class="placeholder" id="placeholder" hidden>此型號的 3D 模型建置中。<br>右側規格可先參考。</div>
+
+  <header class="head">
+    <div class="eyebrow" id="eyebrow">米多力・吊隱式風管除濕機</div>
+    <h1 class="model" id="modelName">MD</h1>
+    <div class="kpis" id="kpis"></div>
+    <div class="headbtns">
+      <button type="button" class="modelbtn" id="modelBtn" hidden aria-haspopup="dialog" aria-controls="picker">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor"/></svg>
+        切換型號</button>
+      <button type="button" class="installbtn" id="btnInstall" hidden>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        安裝 App</button>
+    </div>
+  </header>
+
+  <aside class="sheet" id="sheet" data-collapsed="true">
+    <button class="sheet-toggle" id="sheetToggle" aria-expanded="false" aria-controls="sheetBody">規格與組合 <span id="sheetArrow">▴</span></button>
+    <h2 class="wide">規格與組合</h2>
+    <div class="body" id="sheetBody">
+      <section class="sec" id="variantBox" hidden>
+        <h3>出回風組合 <output id="variantName"></output></h3>
+        <div class="chiplbl">出風</div>
+        <div class="chips" id="supplyChips"></div>
+        <div class="chiplbl">回風</div>
+        <div class="chips" id="returnChips"></div>
+      </section>
+      <section class="sec share" id="shareBox" hidden>
+        <h3>分享此型號</h3>
+        <code id="shareUrl"></code>
+        <button type="button" class="ghost" id="btnCopy">複製連結</button>
+        <p id="shareHint"></p>
+      </section>
+      <section class="sec">
+        <h3>產品規格</h3>
+        <dl class="spec" id="specTable"></dl>
+      </section>
+      <section class="sec">
+        <h3>可選購配件</h3>
+        <ul class="opts" id="optList"></ul>
+      </section>
+      <p class="note" id="note"></p>
+      <dl class="readout">
+        <div><dt>轉台角度</dt><dd id="roAngle">0°</dd></div>
+        <div><dt>資料來源</dt><dd style="font:400 11px/1.4 var(--f-body)">米多力 2026 型錄、原廠圖面</dd></div>
+      </dl>
+    </div>
+  </aside>
+
+  <div class="picker" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+    <div class="picker-panel">
+      <div class="picker-head"><h2 id="pickerTitle">選擇型號</h2><button type="button" id="pickerClose" aria-label="關閉型號選單">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+      <ul class="picker-list" id="pickerList"></ul>
+    </div>
+  </div>
+  <div class="ioshelp" id="iosHelp" hidden role="dialog" aria-modal="true" aria-labelledby="iosHelpTitle">
+    <div class="ioshelp-card">
+      <h2 id="iosHelpTitle">加到主畫面</h2>
+      <ol>
+        <li>點 Safari 下方（iPad 在右上角）的「分享」按鈕 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v8.5M5 4.5 8 1.5l3 3M4 7H3v7.5h10V7h-1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li>往下找到「加入主畫面」</li>
+        <li>點右上角「新增」，主畫面就會出現展示台圖示</li>
+      </ol>
+      <button type="button" class="primary" id="iosHelpClose">知道了</button>
+    </div>
+  </div>
+
+  <nav class="console" aria-label="展示台控制">
+    <div class="grp">
+      <button class="primary" id="btnPlay" aria-label="暫停旋轉" title="暫停 / 播放"><svg viewBox="0 0 16 16" id="icoPlay" aria-hidden="true"></svg></button>
+      <button id="btnDir" aria-label="切換旋轉方向" title="切換方向">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12.6 1.6v3.2H9.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="dirTxt">逆時針</span>
+      </button>
+      <label class="speed" for="inSpeed">轉速<input id="inSpeed" type="range" min="0.5" max="12" step="0.5" value="3"><output id="outSpeed">3.0 rpm</output></label>
+    </div>
+    <div class="sep" aria-hidden="true"></div>
+    <div class="grp" role="group" aria-label="視角">
+      <button data-view="iso">等角</button><button data-view="front">正面</button><button data-view="side">側面</button><button data-view="top">俯視</button>
+    </div>
+    <div class="sep" aria-hidden="true"></div>
+    <div class="grp">
+      <button id="btnTags" aria-pressed="true"><span class="lbl-long">風口</span>標示</button>
+      <button id="btnDims" aria-pressed="false">尺寸<span class="lbl-long">線</span></button>
+      <button id="btnFull" hidden aria-pressed="false" aria-label="全螢幕" title="全螢幕"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </nav>
+</div>
+
+<script>window.SHOWROOM={"mode": "app", "models": ["MD-30LB", "MD-35LB-TP", "MD-A40LB", "MD-40LBD", "MD-70LBD", "MD-70LBAD", "MD-70LBDN", "MD-100LB", "MD-130LB", "MD-140LB", "MD-210LB", "MD-250LB", "MD-300LBD"], "start": "MD-70LBDN"};</script>
+<script src="data.js"></script>
+<script src="families.js"></script>
+<script src="models/md-30lb.js"></script>
+<script src="models/md-35lb-tp.js"></script>
+<script src="models/md-a40lb.js"></script>
+<script src="models/md-40lbd.js"></script>
+<script src="models/md-70lbd.js"></script>
+<script src="models/md-70lbad.js"></script>
+<script src="models/md-70lbdn.js"></script>
+<script src="models/md-100lb.js"></script>
+<script src="models/md-130lb.js"></script>
+<script src="models/md-140lb.js"></script>
+<script src="models/md-210lb.js"></script>
+<script src="models/md-250lb.js"></script>
+<script src="models/md-300lbd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.147.0/three.min.js"></script>
+<script src="engine.js"></script>
+
+</body>
+</html>
