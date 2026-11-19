@@ -264,14 +264,24 @@ function buildProduct(def,vkey){
 function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 
 /* ---------- variants ---------- */
-function variantKeys(def){if(!def||!def.variants)return [];const V=def.variants;return V.fixed?[]:V.supply.flatMap(s=>V.ret.map(r=>s.id+'-'+r.id));}
+/* two kinds: supply×return chips (s1-r4), or per-port options (variants.ports + variants.opts, key = one opt id per port, e.g. "8-66-8-4444") */
+function variantKeys(def){if(!def||!def.variants)return [];const V=def.variants;if(V.fixed)return [];
+  if(V.ports)return V.ports.reduce((acc)=>acc.flatMap(k=>V.opts.map(o=>k?k+'-'+o.id:o.id)),['']);
+  return V.supply.flatMap(s=>V.ret.map(r=>s.id+'-'+r.id));}
 function parseVariant(def,vkey){
   const V=def.variants;if(!V||V.fixed)return {};
+  if(V.ports){let parts=(vkey||'').split('-');
+    if(parts.length!==V.ports.length||parts.some(id=>!V.opts.some(o=>o.id===id)))parts=V.default.split('-');
+    const ports={};V.ports.forEach((p,i)=>ports[p.id]=V.opts.find(o=>o.id===parts[i]));
+    return {key:parts.join('-'),ports};}
   if(!vkey||variantKeys(def).indexOf(vkey)<0)vkey=V.default;
   const [sid,rid]=vkey.split('-');
   return {key:vkey,supply:V.supply.find(s=>s.id===sid),ret:V.ret.find(r=>r.id===rid)};
 }
-function variantName(def,v){return v&&v.supply?(v.supply.name+v.ret.name):'';}
+function portSummary(def,v,side){return def.variants.ports.filter(p=>p.side===side).map(p=>v.ports[p.id].name).join('／');}
+function variantName(def,v){
+  if(v&&v.ports)return '出 '+portSummary(def,v,'s')+'・回 '+portSummary(def,v,'r');
+  return v&&v.supply?(v.supply.name+v.ret.name):'';}
 
 /* ---------- orbit camera ---------- */
 const target=new T.Vector3();
@@ -343,9 +353,18 @@ function renderSheet(id,def,v){
   $('note').textContent=(def&&def.note)||'此型號 3D 模型建置中，規格可先參考。';
   // variant picker
   const box=$('variantBox');
+  const chips=(list,cur,kind)=>list.map(o=>'<button type="button" class="chip" data-kind="'+kind+'" data-id="'+o.id+'" aria-pressed="'+(o.id===cur?'true':'false')+'"><b>'+esc(o.name)+'</b><span>'+esc(o.spec)+'</span></button>').join('');
+  if(def&&def.variants&&def.variants.ports){
+    const V=def.variants;box.hidden=false;if(box.classList)box.classList.toggle('fixed',false);
+    const rows=side=>V.ports.filter(p=>p.side===side).map(p=>'<div class="portlbl">'+esc(p.name)+'</div>'+chips(V.opts,v.ports[p.id].id,p.id)).join('');
+    $('supplyChips').innerHTML=rows('s');$('returnChips').innerHTML=rows('r');
+    $('variantName').textContent=variantName(def,v);
+    box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const cur=parseVariant(def,current.v);
+      select(current.id,V.ports.map(p=>p.id===b.dataset.kind?b.dataset.id:cur.ports[p.id].id).join('-'),true);});
+    renderShare(id,v);return;
+  }
   if(def&&def.variants&&!def.variants.fixed){
     const V=def.variants;box.hidden=false;
-    const chips=(list,cur,kind)=>list.map(o=>'<button type="button" class="chip" data-kind="'+kind+'" data-id="'+o.id+'" aria-pressed="'+(o.id===cur?'true':'false')+'"><b>'+esc(o.name)+'</b><span>'+esc(o.spec)+'</span></button>').join('');
     $('supplyChips').innerHTML=chips(V.supply,v.supply.id,'s');$('returnChips').innerHTML=chips(V.ret,v.ret.id,'r');
     $('variantName').textContent=variantName(def,v);
     box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const cur=parseVariant(def,current.v);
