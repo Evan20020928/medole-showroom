@@ -38,31 +38,21 @@ const rim=new T.DirectionalLight(0xdff6f5,0.6);scene.add(rim);
 /* ---------- textures ---------- */
 function canvasTex(w,h,draw,srgb){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');draw(g,w,h);
   const t=new T.CanvasTexture(c);if(srgb!==false)t.encoding=T.sRGBEncoding;t.anisotropy=8;return t;}
-const grain=canvasTex(512,512,(g,w,h)=>{const d=g.createImageData(w,h);for(let i=0;i<d.data.length;i+=4){const v=110+Math.random()*90;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}g.putImageData(d,0,0);},false);
-grain.wrapS=grain.wrapT=T.RepeatWrapping;grain.repeat.set(5,5);
-/* galvanised spangle: jittered-grid Voronoi crystals used as roughness map under the paint */
-const spangle=canvasTex(512,512,(g,w,h)=>{
-  const N=18,cs=w/N,seeds=[];
-  for(let j=0;j<N;j++)for(let i=0;i<N;i++)seeds.push({x:(i+.15+Math.random()*.7)*cs,y:(j+.15+Math.random()*.7)*cs,v:95+Math.random()*80,a:Math.random()*PI,s:.4+Math.random()*.6});
-  const S=(i,j)=>seeds[((j+N)%N)*N+((i+N)%N)];const d=g.createImageData(w,h);
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const ci=Math.floor(x/cs),cj=Math.floor(y/cs);let best=1e9,sd=null;
-    for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){const s=S(ci+di,cj+dj),sx=s.x+(ci+di-((ci+di+N)%N))*cs,sy=s.y+(cj+dj-((cj+dj+N)%N))*cs,dd=(x-sx)**2+(y-sy)**2;if(dd<best){best=dd;sd=s;}}
-    const fe=Math.cos(sd.a)*(x/cs)+Math.sin(sd.a)*(y/cs),v=sd.v+Math.sin(fe*9)*8*sd.s+(Math.random()-.5)*14;
-    const k=(y*w+x)*4;d.data[k]=d.data[k+1]=d.data[k+2]=Math.max(0,Math.min(255,v));d.data[k+3]=255;}
-  g.putImageData(d,0,0);},false);
-spangle.wrapS=spangle.wrapT=T.RepeatWrapping;spangle.repeat.set(2.5,2.5);
 
+const lin=c=>(c&&c.convertSRGBToLinear?c.convertSRGBToLinear():c);   // sRGB hex -> linear
 /* ---------- materials ---------- */
+/* colours are sRGB hex taken from product photos (converted to linear in applyFinish); smooth powder coat, no texture */
 const FINISH={
-  black:{body:0x16171a,body2:0x1b1c1f,metal:.62,rough:1,map:spangle,bump:.18},     // 黑色鍍鋅鋼板
-  ivory:{body:0xe6e2d6,body2:0xdcd8cb,metal:.12,rough:.62,map:null,bump:.35},      // 米白粉體塗裝
-  white:{body:0xeef0ef,body2:0xe2e5e4,metal:.12,rough:.55,map:null,bump:.3}
+  black:{body:0x222224,body2:0x1d1d1f,metal:.05,rough:.66,env:.18},      // 黑色粉體塗裝鋼板（緞面）
+  ivory:{body:0xefe6cf,body2:0xeee2c6,metal:.02,rough:.6,env:.4},     // 米白粉體塗裝鋼板
+  white:null
 };
+FINISH.white=FINISH.ivory;   // 白色機種實際也是偏米色的白
 const mat={
   body:new T.MeshStandardMaterial(),body2:new T.MeshStandardMaterial(),
   seam:new T.MeshStandardMaterial({color:0x0b0c0d,roughness:1}),
-  plastic:new T.MeshStandardMaterial({color:0x141516,metalness:0,roughness:.35,side:T.DoubleSide}),
-  hole:new T.MeshStandardMaterial({color:0x050606,roughness:1,side:T.DoubleSide}),
+  plastic:new T.MeshStandardMaterial({color:lin(new T.Color(0x121213)),metalness:0,roughness:.3,side:T.DoubleSide}),
+  hole:new T.MeshStandardMaterial({color:0x000000,roughness:1,envMapIntensity:0,side:T.DoubleSide}),
   teal:new T.MeshStandardMaterial({color:0x5c9aa0,metalness:.05,roughness:.5,side:T.DoubleSide}),
   tealDark:new T.MeshStandardMaterial({color:0x3f6f74,metalness:.05,roughness:.55,side:T.DoubleSide}),
   rubber:new T.MeshStandardMaterial({color:0x101112,roughness:.9}),
@@ -77,7 +67,8 @@ const mat={
 };
 function applyFinish(name){
   const f=FINISH[name]||FINISH.black;
-  [['body',f.body],['body2',f.body2]].forEach(([k,c])=>{const m=mat[k];m.color.set(c);m.metalness=f.metal;m.roughness=f.rough;m.roughnessMap=f.map;m.bumpMap=grain;m.bumpScale=f.bump;m.envMapIntensity=1.1;m.needsUpdate=true;});
+  [['body',f.body],['body2',f.body2]].forEach(([k,c])=>{const m=mat[k];m.color.set(c);lin(m.color);m.metalness=f.metal;m.roughness=f.rough;
+    m.roughnessMap=null;m.bumpMap=null;m.envMapIntensity=f.env;m.needsUpdate=true;});
 }
 
 /* ---------- geometry kit (plan mm: x along length, d from back to front, h up) ---------- */
@@ -148,8 +139,8 @@ function makeKit(group,center){
       if(fl){prof.push([F,s0],[F,s0+3],[R+2,s0+fl]);}else prof.push([R,s0]);
       prof.push([R,L-7],[R+2.5,L-5],[R+2.5,L-2],[R,L],[R-1.6,L]);
       const b=at(0);K.lathe(ax,dir,b[0],b[1],b[2],prof,m);
-      const mid=at((s0+L)/2);K.rod(ax,R-1.6,mid[0],mid[1],mid[2],L-s0,mat.hole,56,true);
-      const bk=at(s0+Math.min(24,L*0.4));K.disc(ax,R-1.6,bk[0],bk[1],bk[2],mat.hole);
+      const mid=at((s0+L)/2);K.rod(ax,R-1.6,mid[0],mid[1],mid[2],L-s0,m,56,true);   // inner wall: same black plastic, so the collar reads hollow
+      const bk=at(s0+0.8);K.disc(ax,R-1.6,bk[0],bk[1],bk[2],mat.hole);
       return at(L);
     },
     /* rounded-rect plate -> loft -> round collar along +/-Z (8" outlet style) */
@@ -185,7 +176,17 @@ function makeKit(group,center){
         s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:pt,bevelEnabled:false,curveSegments:16}),o.d);s0=pt;
         [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.rod('z',4,o.x+a*(pw/2-10),o.h+b*(ph/2-10),o.d+dir*(pt+1.5),3,mat.steel,12));}
       if(o.len>s0){const s=shp(w,hh);s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:o.len-s0,bevelEnabled:false,curveSegments:20}),o.d+dir*s0);}
-      const back=new T.Mesh(new T.ShapeGeometry(shp(w-2*t,hh-2*t),20),mat.hole);back.position.set(CX(o.x),o.h,CZ(o.d+dir*Math.min(10,o.len*0.3)));if(dir<0)back.rotation.y=PI;add(back);
+      let backD=o.d+dir*Math.min(10,o.len*0.3);
+      if(o.recess){   // the box behind the flange gets a real stadium opening, lined in black, so the outlet reads hollow down to the unit face
+        const R=o.recess,dep=R.depth,iw=w-2*t,ih=hh-2*t,fr=new T.Shape(),X0=R.x0-o.x,X1=R.x1-o.x,Y0=R.h0-o.h,Y1=R.h1-o.h,rc=3;
+        fr.moveTo(X0+rc,Y0);fr.lineTo(X1-rc,Y0);fr.quadraticCurveTo(X1,Y0,X1,Y0+rc);fr.lineTo(X1,Y1-rc);fr.quadraticCurveTo(X1,Y1,X1-rc,Y1);
+        fr.lineTo(X0+rc,Y1);fr.quadraticCurveTo(X0,Y1,X0,Y1-rc);fr.lineTo(X0,Y0+rc);fr.quadraticCurveTo(X0,Y0,X0+rc,Y0);
+        fr.holes.push(pth(iw,ih));
+        const fm=add(shade(new T.Mesh(new T.ExtrudeGeometry(fr,{depth:dep,bevelEnabled:false,curveSegments:20}),R.m)));fm.position.set(CX(o.x),o.h,CZ(o.d-dir*dep));if(dir<0)fm.rotation.y=PI;
+        const sl=shp(iw,ih);sl.holes.push(pth(iw-4,ih-4));
+        const sm=add(shade(new T.Mesh(new T.ExtrudeGeometry(sl,{depth:dep,bevelEnabled:false,curveSegments:20}),m)));sm.position.set(CX(o.x),o.h,CZ(o.d-dir*dep));if(dir<0)sm.rotation.y=PI;
+        backD=o.d-dir*(dep-1);}
+      const back=new T.Mesh(new T.ShapeGeometry(shp(w-2*t,hh-2*t),20),mat.hole);back.position.set(CX(o.x),o.h,CZ(backD));if(dir<0)back.rotation.y=PI;add(back);
       return o.d+dir*o.len;
     },
     /* hanger bracket: ear at height h (top face), from face x outward to tip, centred on plan d */

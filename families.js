@@ -103,9 +103,9 @@ F.C=function(K,P,v){
   /* supply: boxes with flat-oval outlets */
   let sTip=B.d1,sTop=0;
   P.supply.forEach(s=>{
-    K.box(s.x0,s.x1,s.h0,s.h1,B.d1,B.d1+s.dd,m.body2,3);
     const cx=(s.x0+s.x1)/2,ch=s.oh||(s.h0+s.h1)/2,face=B.d1+s.dd;
-    const tip=K.stadium({x:cx,h:ch,d:face,dir:1,w:s.ow,hh:s.ohh,len:s.olen||6,t:4,plate:s.plate||null,m:m.plastic});
+    const tip=K.stadium({x:cx,h:ch,d:face,dir:1,w:s.ow,hh:s.ohh,len:s.olen||6,t:4,plate:s.plate||null,m:m.plastic,
+      recess:{x0:s.x0,x1:s.x1,h0:s.h0,h1:s.h1,depth:s.dd,m:m.body2}});
     sTip=Math.max(sTip,tip);sTop=Math.max(sTop,ch+s.ohh/2);});
   const sx=(P.supply[0].x0+P.supply[P.supply.length-1].x1)/2;
   K.tag(sx,sTop+30,sTip,[0,0,1],'SA',P.supplyName);
