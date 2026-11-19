@@ -526,7 +526,15 @@ if(CFG.mode==='app'){
   if(document.fullscreenEnabled&&matchMedia('(pointer: fine)').matches){fb.hidden=false;
     fb.onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}};
     document.addEventListener('fullscreenchange',()=>fb.setAttribute('aria-pressed',!!document.fullscreenElement));}
-  if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+  /* updates: check for a new version every time the app is opened or brought back; when the new version takes over, reload once so it shows right away */
+  if('serviceWorker' in navigator){try{
+    const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadSW||reloaded)return;reloaded=true;location.reload();});
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+      const check=()=>{try{reg.update();}catch(e){}};check();
+      document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});
+    }).catch(()=>{});
+  }catch(e){}}
   refreshInstall();
 }
 window.addEventListener('hashchange',()=>{const r=fromHash();if(r.id!==current.id||r.v!==current.v){select(r.id,r.v,true);return;}
