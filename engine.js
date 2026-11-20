@@ -242,12 +242,8 @@ function makeKit(group,center){
       const lx0=Math.min(tip,tip-s*t),lx1=Math.max(tip,tip-s*t);let cuts=(notches||[]).filter(n=>n.dir===(s>0?'+x':'-x')).map(n=>[n.d-n.r,n.d+n.r]).sort((a,b)=>a[0]-b[0]),from=d-w/2;
       cuts.forEach(([c0,c1])=>{if(c0-from>0.5)K.box(lx0,lx1,h-12,h,from,c0,m);from=c1;});if(d+w/2-from>0.5)K.box(lx0,lx1,h-12,h,from,d+w/2,m);
     },
-    hole(x,d,h,r,slot){
-      if(!slot){K.torus('y',r+5,3.2,x,h+1,d,mat.rubber);K.rod('y',r,x,h-1.5,d,4,mat.hole,20);return;}
-      /* 開口吊孔: the hole and slot are real cut-outs in the plate (plateCut); the rubber grommet stays, with a gap where the slot leaves */
-      const R=r+5,gap=2*Math.asin(Math.min(0.95,(r+1)/R)),phi={'-x':PI,'+x':0,'-d':PI/2,'+d':1.5*PI}[slot.dir];
-      const g=new T.TorusGeometry(R,3.2,10,48,2*PI-gap);g.rotateZ(phi+gap/2);g.rotateX(-PI/2);
-      const o=add(shade(new T.Mesh(g,mat.rubber)));o.position.set(CX(x),h+1,CZ(d));},
+    /* hanger hole. Rubber grommets removed for now (anti-vibration pad model to come); a slotted hole is a real cut-out made by plateCut, so nothing to add */
+    hole(x,d,h,r,slot){if(slot)return;K.rod('y',r,x,h-1.5,d,4,mat.hole,20);},
     /* 初效濾網: black frame (rounded outer corners, border b) between depths dA<dB, diamond wire mesh in the opening */
     filterFrame(x0,x1,h0,h1,dA,dB,b,r,mesh){
       /* outer edge = round stainless rod (白鐵), radius rt; inside it a light-grey fabric band out to border b; woven mesh in the opening */
