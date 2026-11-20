@@ -18,7 +18,7 @@ F.A=function(K,P,v){
   const HB=P.holes;
   HB.d.forEach(d=>{K.bracket(0,P.brL,d,P.brW,HB.h,28);K.bracket(L,P.brR,d,P.brW,HB.h,28);HB.x.forEach(x=>K.hole(x,d,HB.h,6));});
   /* drain head on the back face */
-  K.rod('z',14,P.drain.x,P.drain.h,-P.drain.len/2,P.drain.len,m.drain,32);K.disc('z',10,P.drain.x,P.drain.h,-P.drain.len-0.3,m.hole);
+  K.rod('z',14,P.drain.x,P.drain.h,-P.drain.len/2,P.drain.len,m.drain,32);K.obstacles.push({x0:P.drain.x-14,x1:P.drain.x+14,h0:P.drain.h-14,h1:P.drain.h+14,d0:-P.drain.len,d1:0});K.disc('z',10,P.drain.x,P.drain.h,-P.drain.len-0.3,m.hole);
   /* front face: screws, nameplate */
   P.screws.x.forEach(x=>P.screws.h.forEach(h=>K.screw(x,h,D,1,4.5)));
   K.nameplate(P.plate.x,P.plate.h,D+0.8,150,40,'z+',P.id,P.plate.sub);
@@ -89,7 +89,9 @@ F.filterSet=function(K,o){
     K.pleatPanel(cx0,cx1,cz0,cz1,dF,D(c.y[0]),c.pitch);
     c.tabs.forEach(t=>{if(t.side==='x'){const zc=cz0+t.zc*(cz1-cz0);K.box(cx0-t.out,cx0,zc-t.size/2,zc+t.size/2,dF,dF+t.t,m.carbonTab);}
       /* bottom tab hidden (user request): it would hang below the rails */});});
-   K.movers.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36});}
+   const cd=[dF,D(c.y[0])],parts=[{x0:cx0,h0:cz0,h1:cz1,d0:cd[0],d1:cd[1]}];
+   c.tabs.filter(t=>t.side==='x').forEach(t=>{const zc=cz0+t.zc*(cz1-cz0);parts.push({x0:cx0-t.out,h0:zc-t.size/2,h1:zc+t.size/2,d0:cd[0],d1:cd[1]});});
+   K.movers.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36,parts});}
   const f=R.frame,dm=D((f.y[0]+f.y[1])/2);
   const pg=K.group(()=>{K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
   /* 拉帶: black plastic-sheet strap looped around the frame edge (user sketch + photo); size from the Rhino loop:
@@ -97,7 +99,9 @@ F.filterSet=function(K,o){
   const la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4;   // loop 1 mm puffier than the Rhino model; legs lie on the round frame (touching it)
   /* only the side-pull strap is shown: the bottom-pull strap would hang outside the rails (user request) */
   R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});});
-  K.movers.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0});
+  const ld=(R.loopDepth||7.5)/2+2,pparts=[{x0:o.x0,h0:o.h0,h1:o.h1,d0:dm-ld,d1:dm+ld}];
+  R.rings.filter(g=>g.side==='x').forEach(g=>{const zc=o.h0+g.zc*Hh;pparts.push({x0:o.x0-g.out,h0:zc-g.size/2,h1:zc+g.size/2,d0:dm-ld,d1:dm+ld});});
+  K.movers.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0,parts:pparts});
   return Math.min(tip,D(f.y[1]));
 };
 /* 機殼頂部三角凸筋 (5 mm): two ridges along the length at ~27 % and ~57 % of the body depth from the back face */
@@ -106,8 +110,8 @@ F.topRidges=function(K,x0,x1,d0,d1,H,w){const D=d1-d0,hw=(w||12)/2;[0.27,0.57].f
 F.filter=function(K,o){const m=K.mat;K.box(o.x0,o.x1,o.h0,o.h1,o.d0,o.d1,m.body2);K.box(o.x0+10,o.x1-10,o.h0+10,o.h1-10,o.d0-0.6,o.d0+1,m.seam);};
 /* drain head: axis 'z' (back face, dir -1) or 'x' (left end, dir -1) */
 F.drain=function(K,o){const m=K.mat,len=o.len||26;
-  if(o.axis==='x'){K.rod('x',13,o.x-len/2,o.h,o.d,len,m.drain,28);K.disc('x',9,o.x-len-0.3,o.h,o.d,m.hole);return [o.x-len,o.h,o.d];}
-  K.rod('z',13,o.x,o.h,o.d-len/2,len,m.drain,28);K.disc('z',9,o.x,o.h,o.d-len-0.3,m.hole);return [o.x,o.h,o.d-len];};
+  if(o.axis==='x'){K.rod('x',13,o.x-len/2,o.h,o.d,len,m.drain,28);K.obstacles.push({x0:o.x-len,x1:o.x,h0:o.h-13,h1:o.h+13,d0:o.d-13,d1:o.d+13});K.disc('x',9,o.x-len-0.3,o.h,o.d,m.hole);return [o.x-len,o.h,o.d];}
+  K.rod('z',13,o.x,o.h,o.d-len/2,len,m.drain,28);K.obstacles.push({x0:o.x-13,x1:o.x+13,h0:o.h-13,h1:o.h+13,d0:o.d-len,d1:o.d});K.disc('z',9,o.x,o.h,o.d-len-0.3,m.hole);return [o.x,o.h,o.d-len];};
 F.screws=function(K,list,d){list.forEach(([x,h])=>K.screw(x,h,d,1,4.5));};
 })();
 

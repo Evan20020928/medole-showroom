@@ -99,7 +99,7 @@ function shade(m){m.castShadow=true;m.receiveShadow=true;return m;}
 function makeKit(group,center){
   const CX=x=>x-center.x,CZ=d=>d-center.d,anchors=[],dims=[];
   let tgt=group;const add=o=>{tgt.add(o);return o;};
-  const K={anchors,dims,mat,PI,FRAME_ROD:2,movers:[],
+  const K={anchors,dims,mat,PI,FRAME_ROD:2,movers:[],obstacles:[],
     /* build parts inside a child group (so they can be moved later, e.g. a filter that slides out) */
     group(fn){const g=new T.Group(),prev=tgt;tgt.add(g);tgt=g;try{fn();}finally{tgt=prev;}return g;},
     /* axis-aligned box, optional rounded vertical edges + bevel */
@@ -342,6 +342,10 @@ function buildProduct(def,vkey){
   g.add(dimGroup);dimGroup.visible=state.dims;
   g.scale.setScalar(MM);g.position.y=discH+0.003;
   product=g;turntable.add(product);
+  /* side pull stops before anything in its path (e.g. the drain head): travel = min(50 %, gap to the nearest obstacle − 3 mm) */
+  K.movers.forEach(mv=>{if(!mv.parts)return;let lim=mv.side;   // parts: boxes of the moving filter (frame, panel, tab, strap…)
+    mv.parts.forEach(e=>K.obstacles.forEach(ob=>{if(ob.h1>e.h0&&ob.h0<e.h1&&ob.d1>e.d0&&ob.d0<e.d1&&ob.x1<=e.x0+0.5)lim=Math.min(lim,e.x0-ob.x1-3);}));
+    mv.side=Math.max(0,lim);});
   movers=K.movers;lift=0;renderPull();
   anchors=K.anchors;
   labelsEl.innerHTML='';
