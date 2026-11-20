@@ -96,6 +96,8 @@ function applyFinish(name){
 
 /* ---------- geometry kit (plan mm: x along length, d from back to front, h up) ---------- */
 function shade(m){m.castShadow=true;m.receiveShadow=true;return m;}
+/* flange plate outline: rectangle pw×ph centred, 45° chamfer c on all four corners (法蘭四角倒角) */
+function chamferRect(pw,ph,c){const s=new T.Shape(),a=pw/2,b=ph/2;s.moveTo(-a+c,-b);s.lineTo(a-c,-b);s.lineTo(a,-b+c);s.lineTo(a,b-c);s.lineTo(a-c,b);s.lineTo(-a+c,b);s.lineTo(-a,b-c);s.lineTo(-a,-b+c);s.lineTo(-a+c,-b);return s;}
 function makeKit(group,center){
   const CX=x=>x-center.x,CZ=d=>d-center.d,anchors=[],dims=[];
   let tgt=group;const add=o=>{tgt.add(o);return o;};
@@ -163,7 +165,7 @@ function makeKit(group,center){
       const at=(s)=>ax==='z'?[o.x,o.h,o.d+dir*s]:[o.x+dir*s,o.h,o.d];
       let s0=0;
       if(o.plate){const pt=o.plateT||3,[pw,ph]=o.plate;
-        if(ax==='z')K.box(o.x-pw/2,o.x+pw/2,o.h-ph/2,o.h+ph/2,Math.min(o.d,o.d+dir*pt),Math.max(o.d,o.d+dir*pt),m);
+        if(ax==='z'){const pm=add(shade(new T.Mesh(new T.ExtrudeGeometry(chamferRect(pw,ph,Math.min(12,pw*0.1)),{depth:pt,bevelEnabled:false}),m)));pm.position.set(CX(o.x),o.h,CZ(Math.min(o.d,o.d+dir*pt)));}
         else K.box(Math.min(o.x,o.x+dir*pt),Math.max(o.x,o.x+dir*pt),o.h-ph/2,o.h+ph/2,o.d-pw/2,o.d+pw/2,m);
         s0=pt;}
       const fl=o.flare?Math.min(o.flareLen||16,L*0.35):0,F=R+(o.flareR||12);
@@ -178,9 +180,7 @@ function makeKit(group,center){
     /* rounded-rect plate -> loft -> round collar along +/-Z (8" outlet style) */
     ovalDuct(o){
       const dir=o.dir||1,R=o.od/2,pw=o.plateW,ph=o.plateH,rad=o.rad||40,t=o.plateT||21;
-      const s=new T.Shape(),x0=-pw/2,y0=-ph/2;
-      s.moveTo(x0+rad,y0);s.lineTo(-x0-rad,y0);s.quadraticCurveTo(-x0,y0,-x0,y0+rad);s.lineTo(-x0,-y0-rad);s.quadraticCurveTo(-x0,-y0,-x0-rad,-y0);
-      s.lineTo(x0+rad,-y0);s.quadraticCurveTo(x0,-y0,x0,-y0-rad);s.lineTo(x0,y0+rad);s.quadraticCurveTo(x0,y0,x0+rad,y0);
+      const s=chamferRect(pw,ph,o.chamfer||16);
       const pg=new T.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:12});
       const pm=add(shade(new T.Mesh(pg,o.m||mat.plastic)));pm.position.set(CX(o.x),o.hPlate,CZ(o.d));if(dir<0)pm.rotation.y=PI;
       [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-14),o.hPlate+b*(ph/2-14),o.d+dir*t,dir,4.5,o.m||mat.plastic));   // black, like the flange
@@ -201,11 +201,9 @@ function makeKit(group,center){
       const pth=(W,Hh)=>{const r=Math.min(Hh/2,W/2),s=new T.Path(),a=W/2-r;s.moveTo(-a,-Hh/2);s.absarc(-a,0,r,3*PI/2,PI/2,true);s.lineTo(a,Hh/2);s.absarc(a,0,r,PI/2,-PI/2,true);s.lineTo(-a,-Hh/2);return s;};
       const place=(g,dd)=>{const mm=add(shade(new T.Mesh(g,m)));mm.position.set(CX(o.x),o.h,CZ(dd));if(dir<0)mm.rotation.y=PI;return mm;};
       let s0=0;
-      if(o.plate){const [pw,ph]=o.plate,pt=o.plateT||4,s=new T.Shape(),r=Math.min(18,ph/4);
-        s.moveTo(-pw/2+r,-ph/2);s.lineTo(pw/2-r,-ph/2);s.quadraticCurveTo(pw/2,-ph/2,pw/2,-ph/2+r);s.lineTo(pw/2,ph/2-r);s.quadraticCurveTo(pw/2,ph/2,pw/2-r,ph/2);
-        s.lineTo(-pw/2+r,ph/2);s.quadraticCurveTo(-pw/2,ph/2,-pw/2,ph/2-r);s.lineTo(-pw/2,-ph/2+r);s.quadraticCurveTo(-pw/2,-ph/2,-pw/2+r,-ph/2);
+      if(o.plate){const [pw,ph]=o.plate,pt=o.plateT||4,s=chamferRect(pw,ph,14);
         s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:pt,bevelEnabled:false,curveSegments:16}),o.d);s0=pt;
-        [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-10),o.h+b*(ph/2-10),o.d+dir*pt,dir,4,m));}
+        [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-12),o.h+b*(ph/2-12),o.d+dir*pt,dir,4,m));}
       if(o.len>s0){const s=shp(w,hh);s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:o.len-s0,bevelEnabled:false,curveSegments:20}),o.d+dir*s0);}
       let backD=o.d+dir*Math.min(10,o.len*0.3);
       if(o.recess){   // the box behind the flange gets a real stadium opening, lined in black, so the outlet reads hollow down to the unit face
