@@ -445,6 +445,7 @@ function fromHash(){
     if(SETS){
       const m=h.match(/^set-([0-9a-z]+)(?:\/(.*))?$/);
       if(h==='reset-all'){storeSet('');useSet('');h='';}
+      else if(m&&decSet(m[1])&&decSet(m[1]).length===CFG.models.length){storeSet('');useSet('');h=m[2]||'';}
       else if(m&&decSet(m[1])){storeSet(m[1]);useSet(m[1]);h=m[2]||'';}
       else if(h.indexOf('solo-')===0){h=h.slice(5);   // older single-model links: honoured as a one-model set unless this device already has a limit
         const had=storedSet();if(had&&decSet(had))useSet(had);
@@ -466,9 +467,11 @@ function openPicker(){const pk=$('picker');pk.hidden=false;
   pk.querySelectorAll('.pk').forEach(b=>b.setAttribute('aria-current',b.dataset.id===current.id?'true':'false'));
   const cur=pk.querySelector('.pk[aria-current="true"]')||pk.querySelector('.pk');if(cur){cur.focus();if(cur.scrollIntoView)cur.scrollIntoView({block:'nearest'});}}
 function closePicker(){const pk=$('picker');if(pk.hidden)return;pk.hidden=true;$('modelBtn').focus();}
-const GROUPS=[['小型 30–40 L/日',id=>+(DATA.specs[id]||{}).cap30<=40],['中型 70–100 L/日',id=>{const c=+(DATA.specs[id]||{}).cap30;return c>40&&c<=100;}],['大型 130 L/日以上',id=>+(DATA.specs[id]||{}).cap30>100]];
 const capOf=id=>+(DATA.specs[id]||{}).cap30;
-const PRESETS=[['30–70 L',id=>capOf(id)>=30&&capOf(id)<=70],['小型 30–40 L',id=>capOf(id)<=40],['中型 70–100 L',id=>capOf(id)>40&&capOf(id)<=100],['大型 130 L 以上',id=>capOf(id)>100],['全選',()=>true],['清除',()=>false]];
+const SIZE=[['小型 30–70 L/日','小型 30–70 L',id=>capOf(id)<=70],['中型 100–140 L/日','中型 100–140 L',id=>capOf(id)>70&&capOf(id)<=140],['大型 210–300 L/日','大型 210–300 L',id=>capOf(id)>140]];
+const GROUPS=SIZE.map(g=>[g[0],g[2]]);
+const PRESETS=SIZE.map(g=>[g[1],g[2]]).concat([['全選',()=>true],['清除',()=>false]]);
+const ALL_TOKEN=()=>encSet(CFG.models);
 let picking=null;   // Set of model ids while building a limited share link
 function renderPicker(){
   if(!MULTI)return;
@@ -486,17 +489,17 @@ function renderPicker(){
   if(ALLOWED)stopPicking();
 }
 function syncPicking(){
-  const pk=$('picker'),on=!!picking;pk.classList.toggle('choosing',on);$('setPanel').hidden=!on;$('btnSetMode').hidden=on;
+  const pk=$('picker'),on=!!picking;pk.classList.toggle('choosing',on);$('setPanel').hidden=!on;$('btnSetMode').hidden=on;$('allBox').hidden=on;
   $('pickerTitle').textContent=on?'勾選要開放的型號':(ALLOWED?'選擇型號（'+POOL().length+' 款）':'選擇型號');
   pk.querySelectorAll('.pk').forEach(b=>{if(on)b.setAttribute('aria-pressed',picking.has(b.dataset.id)?'true':'false');else b.removeAttribute('aria-pressed');});
   if(!on)return;
   const ids=CFG.models.filter(id=>picking.has(id));
   $('setPresets').querySelectorAll('button').forEach((b,i)=>{const fn=PRESETS[i][1],want=CFG.models.filter(fn);
-    b.setAttribute('aria-pressed',i<4&&want.length===ids.length&&want.every(id=>picking.has(id))?'true':'false');});
+    b.setAttribute('aria-pressed',i<SIZE.length&&want.length===ids.length&&want.every(id=>picking.has(id))?'true':'false');});
   const ok=ids.length>0,first=ids.indexOf(current.id)>=0?current.id:ids[0];
   $('setUrl').textContent=ok?setUrl(encSet(ids),first,''):'請至少勾選一款型號。';
   $('btnSetCopy').disabled=!ok;
-  $('setHint').textContent=ok?'已選 '+ids.length+' 款：'+ids.join('、')+'。對方打開後只看得到這些型號，之後重新開啟也一樣。':'';
+  $('setHint').textContent=!ok?'':ids.length===CFG.models.length?'已選全部 '+ids.length+' 款。對方打開後可看到全部型號，之前若被限定過也會解除。':'已選 '+ids.length+' 款：'+ids.join('、')+'。對方打開後只看得到這些型號，之後重新開啟也一樣。';
 }
 function startPicking(){picking=new Set(CFG.models.filter(PRESETS[0][1]));syncPicking();const f=$('picker').querySelector('.pk');if(f)f.focus();}
 function stopPicking(){picking=null;if($('setPanel'))syncPicking();}
@@ -514,6 +517,9 @@ if(MULTI){
     $('setPresets').innerHTML=PRESETS.map(([t])=>'<button type="button" class="chip mini">'+esc(t)+'</button>').join('');
     $('setPresets').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{picking=new Set(CFG.models.filter(PRESETS[i][1]));syncPicking();});
     $('btnSetMode').onclick=startPicking;$('btnSetDone').onclick=stopPicking;
+    $('btnAllLink').onclick=()=>{const t=setUrl(ALL_TOKEN(),current.id,''),b=$('btnAllLink'),lbl=b.textContent,done=()=>{b.textContent='已複製全部型號連結';setTimeout(()=>b.textContent=lbl,1800);};
+      $('allHint').hidden=false;$('allUrl').textContent=t;
+      try{navigator.clipboard.writeText(t).then(done,()=>{});}catch(e){}};
     $('btnSetCopy').onclick=()=>{const t=$('setUrl').textContent,b=$('btnSetCopy'),done=()=>{b.textContent='已複製';setTimeout(()=>b.textContent='複製連結',1600);};
       const sel=()=>{const r=document.createRange();r.selectNodeContents($('setUrl'));const s=getSelection();s.removeAllRanges();s.addRange(r);};
       try{navigator.clipboard.writeText(t).then(done,sel);}catch(e){sel();}};

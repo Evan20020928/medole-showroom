@@ -184,6 +184,11 @@ html.solo .modelbtn{display:none}
 #btnSetCopy{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
 #btnSetCopy:disabled{opacity:.45}
 #setHint{margin:0;font-size:11.5px;color:var(--muted);line-height:1.5}
+.allbox{display:flex;flex-direction:column;gap:8px}
+.allbox[hidden]{display:none}
+.allbox>button.ghost{align-self:stretch;justify-content:center;min-height:44px}
+#allHint p{margin:6px 0 0;font-size:11.5px;color:var(--muted);line-height:1.5}
+#allUrl{display:block;font:400 11px/1.4 var(--f-mono);word-break:break-all;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:7px 8px;user-select:all;-webkit-user-select:all}
 #variantBox.fixed .chiplbl,#variantBox.fixed .chips{display:none}
 .portlbl{grid-column:1/-1;font:600 11.5px/1.2 var(--f-body);color:var(--fg);margin:6px 0 0}
 .portlbl:first-child{margin-top:0}
@@ -262,6 +267,10 @@ html.solo .modelbtn{display:none}
       <ul class="picker-list" id="pickerList"></ul>
       <div class="setbar" id="setTool" hidden>
         <button type="button" class="ghost" id="btnSetMode">建立限定型號分享連結</button>
+        <div class="allbox" id="allBox">
+          <button type="button" class="ghost" id="btnAllLink">複製全部型號連結</button>
+          <div id="allHint" hidden><code id="allUrl"></code><p>對方可看到全部型號；之前若被限定過，打開這條也會解除。</p></div>
+        </div>
         <div class="setpanel" id="setPanel" hidden>
           <p class="set-help">在上方勾選要開放的型號，或用快速選擇：</p>
           <div class="set-presets" id="setPresets"></div>
