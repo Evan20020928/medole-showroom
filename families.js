@@ -92,11 +92,13 @@ F.filterSet=function(K,o){
   const dm=D((f.y[0]+f.y[1])/2);
   /* 拉帶: black plastic-sheet strap looped around the frame edge (user sketch + photo); size from the Rhino loop:
      reach past the edge, overlap on the faces, loop depth 7.5 mm around the frame, strap width = loop length along the edge */
-  const la=(R.loopDepth||7.5)/2+1;   // loop 1 mm puffier than the Rhino model on each face (user request)
+  const la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4;   // loop 1 mm puffier than the Rhino model; legs lie on the round frame (touching it)
   /* only the side-pull strap is shown: the bottom-pull strap would hang outside the rails (user request) */
-  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la});});
+  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});
   return Math.min(tip,D(f.y[1]));
 };
+/* 機殼頂部三角凸筋 (5 mm): two ridges along the length at ~27 % and ~57 % of the body depth from the back face */
+F.topRidges=function(K,x0,x1,d0,d1,H,w){const D=d1-d0,hw=(w||12)/2;[0.27,0.57].forEach(f=>K.ridge(x0,x1,d0+f*D-hw,d0+f*D+hw,H,5,K.mat.body));};
 /* legacy plain filter box (kept for reference) */
 F.filter=function(K,o){const m=K.mat;K.box(o.x0,o.x1,o.h0,o.h1,o.d0,o.d1,m.body2);K.box(o.x0+10,o.x1-10,o.h0+10,o.h1-10,o.d0-0.6,o.d0+1,m.seam);};
 /* drain head: axis 'z' (back face, dir -1) or 'x' (left end, dir -1) */
@@ -115,6 +117,7 @@ F.C=function(K,P,v){
   K.box(B.x0,B.x1,P.base,H,B.d0,B.d1,m.body,4);
   K.box(B.x0,B.x1,0,P.base,B.d0+20,B.d1-20,m.seam);
   K.box(B.x0,B.x1,P.base,P.base+1.5,B.seam-1,B.seam+1,m.seam);
+  F.topRidges(K,B.x0+2,B.x1-2,B.d0,B.d1,H);
   F.basePlates(K,{xL:[0,B.x0],xR:[B.x1,P.L],d:P.plates.d,w:P.plates.w,slot:P.plates.slot});
   /* front-mounted control box (電氣蓋) */
   const C=P.ctrl;K.box(C.x0,C.x1,C.h0,C.h1,B.d1,B.d1+C.dd,m.body2,3);

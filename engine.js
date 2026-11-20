@@ -81,7 +81,8 @@ const mat={
   led:new T.MeshStandardMaterial({color:0x000000,emissive:0x2fb3b6,emissiveIntensity:2.2,roughness:.4}),
   frame:new T.MeshStandardMaterial({color:0xffffff,map:bindTex,metalness:0,roughness:.92}),   // 初效濾網包邊（淺灰布邊）
   wire:new T.MeshStandardMaterial({color:lin(new T.Color(0xd2d5d9)),map:meshTex,transparent:true,alphaTest:.02,depthWrite:false,metalness:.25,roughness:.6,side:T.DoubleSide}),   // 銀灰編織網；blended so far-away mesh averages out instead of moiré
-  rod:new T.MeshStandardMaterial({color:lin(new T.Color(0x9aa0a6)),metalness:.7,roughness:.35}),   // 網面中間的細支撐條
+  rod:new T.MeshStandardMaterial({color:lin(new T.Color(0x9aa0a6)),metalness:.7,roughness:.35}),
+  inox:new T.MeshStandardMaterial({color:lin(new T.Color(0xd3d7db)),metalness:.75,roughness:.28,envMapIntensity:1.2}),   // 白鐵（不鏽鋼）圓框   // 網面中間的細支撐條
   ring:new T.MeshStandardMaterial({color:lin(new T.Color(0x1c1c1e)),metalness:0,roughness:.55,side:T.DoubleSide}),   // 拉環：黑色塑膠布
   carbon:new T.MeshStandardMaterial({color:0xffffff,map:pleatTex,metalness:0,roughness:.9}),   // 甲醛除臭濾網（深灰近黑）
   carbonTab:new T.MeshStandardMaterial({color:lin(new T.Color(0x141414)),metalness:0,roughness:.95,side:T.DoubleSide}),   // 黑色布拉片
@@ -98,7 +99,7 @@ function shade(m){m.castShadow=true;m.receiveShadow=true;return m;}
 function makeKit(group,center){
   const CX=x=>x-center.x,CZ=d=>d-center.d,anchors=[],dims=[];
   const add=o=>{group.add(o);return o;};
-  const K={anchors,dims,mat,PI,
+  const K={anchors,dims,mat,PI,FRAME_ROD:2,
     /* axis-aligned box, optional rounded vertical edges + bevel */
     box(x0,x1,h0,h1,d0,d1,m,r){
       const L=x1-x0,H=h1-h0,D=d1-d0;let mesh;
@@ -227,15 +228,20 @@ function makeKit(group,center){
     hole(x,d,h,r){K.torus('y',r+5,3.2,x,h+1,d,mat.rubber);K.rod('y',r,x,h-1.5,d,4,mat.hole,20);},
     /* 初效濾網: black frame (rounded outer corners, border b) between depths dA<dB, diamond wire mesh in the opening */
     filterFrame(x0,x1,h0,h1,dA,dB,b,r,mesh){
-      const W=x1-x0,Hh=h1-h0,hx=W/2,hy=Hh/2,rr=Math.min(r,W/4,Hh/4),s=new T.Shape();
-      s.moveTo(-hx+rr,-hy);s.lineTo(hx-rr,-hy);s.quadraticCurveTo(hx,-hy,hx,-hy+rr);s.lineTo(hx,hy-rr);s.quadraticCurveTo(hx,hy,hx-rr,hy);
-      s.lineTo(-hx+rr,hy);s.quadraticCurveTo(-hx,hy,-hx,hy-rr);s.lineTo(-hx,-hy+rr);s.quadraticCurveTo(-hx,-hy,-hx+rr,-hy);
-      const ix=hx-b,iy=hy-b,ho=new T.Path();ho.moveTo(-ix,-iy);ho.lineTo(-ix,iy);ho.lineTo(ix,iy);ho.lineTo(ix,-iy);ho.lineTo(-ix,-iy);s.holes.push(ho);
-      const fm=add(shade(new T.Mesh(new T.ExtrudeGeometry(s,{depth:dB-dA,bevelEnabled:false,curveSegments:6}),mat.frame)));fm.position.set(CX((x0+x1)/2),(h0+h1)/2,CZ(dA));
-      fm.material=texClone(mat.frame,(W+Hh)*2/24,1);
-      const pl=add(new T.Mesh(new T.PlaneGeometry(2*ix,2*iy),texClone(mat.wire,2*ix/mesh.px,2*iy/mesh.pz)));pl.position.set(CX((x0+x1)/2),(h0+h1)/2,CZ((dA+dB)/2));pl.castShadow=true;
-      K.rod('y',1.6,(x0+x1)/2,(h0+h1)/2,(dA+dB)/2,2*iy,mat.rod,10);   // thin stiffener across the mesh (photo)
-      return fm;},
+      /* outer edge = round stainless rod (白鐵), radius rt; inside it a light-grey fabric band out to border b; woven mesh in the opening */
+      const W=x1-x0,Hh=h1-h0,xc=(x0+x1)/2,hc=(h0+h1)/2,dm=(dA+dB)/2,rt=K.FRAME_ROD,cr=Math.max(rt+0.5,Math.min(r,W/4,Hh/4));
+      const rr=(sx,sy,rad,n)=>{const P=[],seg=(ax,ay,bx,by,k)=>{for(let i=0;i<k;i++)P.push([ax+(bx-ax)*i/k,ay+(by-ay)*i/k]);},arc=(cx,cy,a0)=>{for(let i=0;i<n;i++){const t=a0+PI/2*i/n;P.push([cx+rad*Math.cos(t),cy+rad*Math.sin(t)]);}};
+        seg(-sx+rad,-sy,sx-rad,-sy,8);arc(sx-rad,-sy+rad,-PI/2);seg(sx,-sy+rad,sx,sy-rad,8);arc(sx-rad,sy-rad,0);seg(sx-rad,sy,-sx+rad,sy,8);arc(-sx+rad,sy-rad,PI/2);seg(-sx,sy-rad,-sx,-sy+rad,8);arc(-sx+rad,-sy+rad,PI);return P;};
+      const path=rr(W/2-rt,Hh/2-rt,cr-rt,6).map(([u,v])=>new T.Vector3(CX(xc+u),hc+v,CZ(dm)));
+      const tube=add(shade(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(path,true,'centripetal'),240,rt,10,true),mat.inox)));
+      const bt=2*rt-0.5,ox=W/2-2*rt+0.6,oy=Hh/2-2*rt+0.6,ix=W/2-b,iy=Hh/2-b,s=new T.Shape(),cr2=Math.max(0.5,cr-2*rt);
+      s.moveTo(-ox+cr2,-oy);s.lineTo(ox-cr2,-oy);s.quadraticCurveTo(ox,-oy,ox,-oy+cr2);s.lineTo(ox,oy-cr2);s.quadraticCurveTo(ox,oy,ox-cr2,oy);
+      s.lineTo(-ox+cr2,oy);s.quadraticCurveTo(-ox,oy,-ox,oy-cr2);s.lineTo(-ox,-oy+cr2);s.quadraticCurveTo(-ox,-oy,-ox+cr2,-oy);
+      const ho=new T.Path();ho.moveTo(-ix,-iy);ho.lineTo(-ix,iy);ho.lineTo(ix,iy);ho.lineTo(ix,-iy);ho.lineTo(-ix,-iy);s.holes.push(ho);
+      const fm=add(shade(new T.Mesh(new T.ExtrudeGeometry(s,{depth:bt,bevelEnabled:false,curveSegments:6}),texClone(mat.frame,(W+Hh)*2/24,1))));fm.position.set(CX(xc),hc,CZ(dm-bt/2));
+      const pl=add(new T.Mesh(new T.PlaneGeometry(2*ix,2*iy),texClone(mat.wire,2*ix/mesh.px,2*iy/mesh.pz)));pl.position.set(CX(xc),hc,CZ(dm));pl.castShadow=true;
+      K.rod('y',1.6,xc,hc,dm,2*iy,mat.rod,10);   // thin stiffener across the mesh (photo)
+      return tube;},
     /* 甲醛濾網: pleated panel, pitch = pleat width */
     pleatPanel(x0,x1,h0,h1,dA,dB,pitch){return K.box(x0,x1,h0,h1,dA,dB,texClone(mat.carbon,(x1-x0)/pitch,(h1-h0)/4));},
     /* U-shaped wire pull ring in a plane of constant d. axis 'x': ring on a vertical edge at x=at (outward = -x), centred at h=c;
@@ -255,10 +261,19 @@ function makeKit(group,center){
        axis 'x': vertical edge at x=at (outward -x), strap centred at h=c;  axis 'z': bottom edge at h=at (outward -h), centred at x=c.
        out = reach past the edge, inn = overlap onto the faces, a = half the loop depth (around d), width = strap width, t = sheet thickness */
     strapLoop(o){
-      const a=o.a,t=o.t||0.8,ro=a+t/2,ri=Math.max(0.3,a-t/2),ub=-(o.out-ro),ui=o.inn,s=new T.Shape();
-      s.moveTo(ui,ro);s.lineTo(ub,ro);s.absarc(ub,0,ro,PI/2,3*PI/2,false);s.lineTo(ui,-ro);s.lineTo(ui,-ri);s.lineTo(ub,-ri);
-      s.absarc(ub,0,ri,3*PI/2,PI/2,true);s.lineTo(ui,ri);s.lineTo(ui,ro);
-      const g=new T.ExtrudeGeometry(s,{depth:o.width,bevelEnabled:false,curveSegments:16});
+      const a=o.a,t=o.t||0.8,wf=o.wf!=null?o.wf:a,tr=Math.min(6,Math.max(1,o.out-a-1)),ub=Math.min(-tr,-(o.out-a)),C=[];
+      for(let i=0;i<=4;i++)C.push([o.inn*(1-i/4),wf]);                                         // front leg lying on the frame
+      for(let i=1;i<=8;i++){const s=i/8;C.push([-tr*s,wf+(a-wf)*(1-Math.cos(PI*s))/2]);}       // flare out to the loop
+      if(ub<-tr-0.01)C.push([ub,a]);
+      for(let i=1;i<=24;i++){const th=PI/2+PI*i/24;C.push([ub+a*Math.cos(th),a*Math.sin(th)]);} // round end
+      if(ub<-tr-0.01)C.push([-tr,-a]);
+      for(let i=7;i>=0;i--){const s=i/8;C.push([-tr*s,-(wf+(a-wf)*(1-Math.cos(PI*s))/2)]);}
+      for(let i=1;i<=4;i++)C.push([o.inn*i/4,-wf]);
+      const n=C.length,outer=[],inner=[];
+      for(let i=0;i<n;i++){const p=C[Math.max(0,i-1)],q=C[Math.min(n-1,i+1)];let tx=q[0]-p[0],ty=q[1]-p[1];const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
+        outer.push([C[i][0]-ty*t/2,C[i][1]+tx*t/2]);inner.push([C[i][0]+ty*t/2,C[i][1]-tx*t/2]);}
+      const s=new T.Shape();s.moveTo(outer[0][0],outer[0][1]);for(let i=1;i<n;i++)s.lineTo(outer[i][0],outer[i][1]);for(let i=n-1;i>=0;i--)s.lineTo(inner[i][0],inner[i][1]);
+      const g=new T.ExtrudeGeometry(s,{depth:o.width,bevelEnabled:false,curveSegments:4});
       const M=new T.Matrix4();
       if(o.axis==='x')M.set(1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1);   // X=u→x, Z=width→h, Y=depth→d
       else M.set(0,0,1,0, 1,0,0,0, 0,1,0,0, 0,0,0,1);               // Z=width→x, X=u→h, Y=depth→d

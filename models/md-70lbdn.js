@@ -17,6 +17,7 @@
     K.box(B.x0,FN.x0,B.h0,B.h1,B.d0,B.d1,m.body,5);
     K.box(FN.x0,B.x1,B.h0,B.h1,B.d0,FN.d1,m.body,5);
     K.box(B.x0+6,B.x1-6,0,B.h0,B.d0+6,B.d1-6,m.seam);
+    window.MEDOLE_FAMILIES.topRidges(K,B.x0+2,B.x1-2,B.d0,B.d1,B.h1);
     K.box(FN.x0-16,FN.x0,B.h0+12,B.h1-6,B.d1,B.d1+4,m.body2);
     [B.h0+30,B.h1-30].forEach(h=>K.screw(FN.x0-8,h,B.d1+4,1,3.5));
 
