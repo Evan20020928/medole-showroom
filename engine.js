@@ -40,11 +40,19 @@ function canvasTex(w,h,draw,srgb){const c=document.createElement('canvas');c.wid
   const t=new T.CanvasTexture(c);if(srgb!==false)t.encoding=T.sRGBEncoding;t.anisotropy=8;return t;}
 
 const lin=c=>(c&&c.convertSRGBToLinear?c.convertSRGBToLinear():c);   // sRGB hex -> linear
-/* filter textures: diamond wire mesh (alpha mask) for 初效濾網, pleat shading for 甲醛濾網 */
-const meshTex=canvasTex(64,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='#ffffff';g.lineWidth=10;g.lineJoin='round';g.beginPath();g.moveTo(0,h/2);g.lineTo(w/2,0);g.lineTo(w,h/2);g.lineTo(w/2,h);g.closePath();g.stroke();},false);
+/* filter textures (from product photos):
+   初效濾網 = light silver woven mesh (alpha mask, see-through) inside a light-grey stitched fabric binding;
+   甲醛除臭濾網 = near-black corrugated honeycomb (rows of small zig-zag cells) */
+const meshTex=canvasTex(64,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='#ffffff';g.lineCap='square';
+  g.lineWidth=7;g.beginPath();g.moveTo(0,h/2);g.lineTo(w/2,0);g.lineTo(w,h/2);g.lineTo(w/2,h);g.closePath();g.stroke();
+  g.globalAlpha=.55;g.lineWidth=2;for(let i=-w;i<w*2;i+=8){g.beginPath();g.moveTo(i,0);g.lineTo(i+h,h);g.stroke();}},false);
 meshTex.wrapS=meshTex.wrapT=T.RepeatWrapping;
-const pleatTex=canvasTex(32,32,(g,w,h)=>{const gr=g.createLinearGradient(0,0,w,0);gr.addColorStop(0,'#8c8c8c');gr.addColorStop(.5,'#6e6e6e');gr.addColorStop(.52,'#585858');gr.addColorStop(1,'#7a7a7a');
-  g.fillStyle=gr;g.fillRect(0,0,w,h);g.fillStyle='rgba(0,0,0,.18)';g.fillRect(0,h-3,w,3);});
+const bindTex=canvasTex(64,16,(g,w,h)=>{g.fillStyle='#c4c7cb';g.fillRect(0,0,w,h);g.fillStyle='rgba(255,255,255,.35)';for(let i=0;i<w;i+=4)g.fillRect(i,0,2,h);
+  g.fillStyle='rgba(60,64,70,.45)';for(let i=0;i<w;i+=8)g.fillRect(i,h/2-1,5,2);});
+bindTex.wrapS=bindTex.wrapT=T.RepeatWrapping;
+const pleatTex=canvasTex(32,32,(g,w,h)=>{g.fillStyle='#1b1d20';g.fillRect(0,0,w,h);
+  const zig=(y,c,lw)=>{g.strokeStyle=c;g.lineWidth=lw;g.beginPath();g.moveTo(0,y+6);g.lineTo(w/2,y-6);g.lineTo(w,y+6);g.stroke();};
+  zig(10,'#4a4e55',5);zig(26,'#4a4e55',5);zig(12,'#2c2f34',2);zig(28,'#2c2f34',2);});
 pleatTex.wrapS=pleatTex.wrapT=T.RepeatWrapping;
 function texClone(base,rx,ry){const m=base.clone?base.clone():base;if(base.map&&base.map.clone){m.map=base.map.clone();m.map.needsUpdate=true;}if(m.map&&m.map.repeat)m.map.repeat.set(rx,ry);return m;}
 /* ---------- materials ---------- */
@@ -71,11 +79,13 @@ const mat={
   disc:new T.MeshStandardMaterial({color:0xeef2f2,metalness:.1,roughness:.22}),
   tick:new T.MeshStandardMaterial({color:0x9aa6a8,roughness:.6}),
   led:new T.MeshStandardMaterial({color:0x000000,emissive:0x2fb3b6,emissiveIntensity:2.2,roughness:.4}),
-  frame:new T.MeshStandardMaterial({color:lin(new T.Color(0x171717)),metalness:.4,roughness:.45}),            // 初效濾網框（黑色金屬）
-  wire:new T.MeshStandardMaterial({color:lin(new T.Color(0x464646)),map:meshTex,transparent:true,alphaTest:.02,depthWrite:false,metalness:.35,roughness:.55,side:T.DoubleSide}),   // blended so far-away mesh averages to grey instead of moiré   // 網線
-  ring:new T.MeshStandardMaterial({color:lin(new T.Color(0x3a3a3a)),metalness:.6,roughness:.35}),            // 拉環
-  carbon:new T.MeshStandardMaterial({color:0xffffff,map:pleatTex,metalness:0,roughness:.85}),                 // 甲醛濾網（灰 105）
-  carbonTab:new T.MeshStandardMaterial({color:lin(new T.Color(0x696969)),metalness:0,roughness:.8,side:T.DoubleSide})
+  frame:new T.MeshStandardMaterial({color:0xffffff,map:bindTex,metalness:0,roughness:.92}),   // 初效濾網包邊（淺灰布邊）
+  wire:new T.MeshStandardMaterial({color:lin(new T.Color(0xd2d5d9)),map:meshTex,transparent:true,alphaTest:.02,depthWrite:false,metalness:.25,roughness:.6,side:T.DoubleSide}),   // 銀灰編織網；blended so far-away mesh averages out instead of moiré
+  rod:new T.MeshStandardMaterial({color:lin(new T.Color(0x9aa0a6)),metalness:.7,roughness:.35}),   // 網面中間的細支撐條
+  ring:new T.MeshStandardMaterial({color:lin(new T.Color(0x1c1c1e)),metalness:0,roughness:.55,side:T.DoubleSide}),   // 拉環：黑色塑膠布
+  carbon:new T.MeshStandardMaterial({color:0xffffff,map:pleatTex,metalness:0,roughness:.9}),   // 甲醛除臭濾網（深灰近黑）
+  carbonTab:new T.MeshStandardMaterial({color:lin(new T.Color(0x141414)),metalness:0,roughness:.95,side:T.DoubleSide}),   // 黑色布拉片
+  drain:new T.MeshStandardMaterial({color:lin(new T.Color(0xd5d9dd)),metalness:.45,roughness:.32,envMapIntensity:1.3})   // 排水頭：銀色金屬
 };
 function applyFinish(name){
   const f=FINISH[name]||FINISH.black;
@@ -215,7 +225,9 @@ function makeKit(group,center){
       s.lineTo(-hx+rr,hy);s.quadraticCurveTo(-hx,hy,-hx,hy-rr);s.lineTo(-hx,-hy+rr);s.quadraticCurveTo(-hx,-hy,-hx+rr,-hy);
       const ix=hx-b,iy=hy-b,ho=new T.Path();ho.moveTo(-ix,-iy);ho.lineTo(-ix,iy);ho.lineTo(ix,iy);ho.lineTo(ix,-iy);ho.lineTo(-ix,-iy);s.holes.push(ho);
       const fm=add(shade(new T.Mesh(new T.ExtrudeGeometry(s,{depth:dB-dA,bevelEnabled:false,curveSegments:6}),mat.frame)));fm.position.set(CX((x0+x1)/2),(h0+h1)/2,CZ(dA));
+      fm.material=texClone(mat.frame,(W+Hh)*2/24,1);
       const pl=add(new T.Mesh(new T.PlaneGeometry(2*ix,2*iy),texClone(mat.wire,2*ix/mesh.px,2*iy/mesh.pz)));pl.position.set(CX((x0+x1)/2),(h0+h1)/2,CZ((dA+dB)/2));pl.castShadow=true;
+      K.rod('y',1.6,(x0+x1)/2,(h0+h1)/2,(dA+dB)/2,2*iy,mat.rod,10);   // thin stiffener across the mesh (photo)
       return fm;},
     /* 甲醛濾網: pleated panel, pitch = pleat width */
     pleatPanel(x0,x1,h0,h1,dA,dB,pitch){return K.box(x0,x1,h0,h1,dA,dB,texClone(mat.carbon,(x1-x0)/pitch,(h1-h0)/4));},
@@ -227,8 +239,10 @@ function makeKit(group,center){
       for(let i=1;i<24;i++){const t=-PI/2-PI*i/24;P.push([U+a*Math.cos(t),a*Math.sin(t)]);}
       for(let i=0;i<=4;i++)P.push([U+(ui-U)*i/4,a]);
       const pts=P.map(([u,v])=>o.axis==='x'?new T.Vector3(CX(o.at+u),o.c+v,CZ(o.d)):new T.Vector3(CX(o.c+v),o.at+u,CZ(o.d)));
-      const tg=new T.TubeGeometry(new T.CatmullRomCurve3(pts,false,'centripetal'),72,r,8,false);
-      return add(shade(new T.Mesh(tg,mat.ring)));},
+      const curve=new T.CatmullRomCurve3(pts,false,'centripetal');
+      if(o.strap){const sw=o.strap/2,st=0.6,sh=new T.Shape();sh.moveTo(-st,-sw);sh.lineTo(st,-sw);sh.lineTo(st,sw);sh.lineTo(-st,sw);sh.lineTo(-st,-sw);
+        return add(shade(new T.Mesh(new T.ExtrudeGeometry(sh,{steps:72,bevelEnabled:false,extrudePath:curve}),mat.ring)));}
+      return add(shade(new T.Mesh(new T.TubeGeometry(curve,72,r,8,false),mat.ring)));},
     nameplate(x,h,d,w,hh,dir,title,sub){
       const tex=canvasTex(1024,232,(g,W,H)=>{g.fillStyle='#f6f8f8';g.fillRect(0,0,W,H);g.fillStyle='#0e6f78';g.fillRect(0,0,22,H);
         g.fillStyle='#132022';g.font='800 100px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(title,62,H*0.42);

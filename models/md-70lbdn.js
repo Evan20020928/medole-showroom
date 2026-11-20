@@ -29,7 +29,7 @@
     [189,439].forEach(d=>{K.bracket(B.x0,43.8,d,51,45,29);K.bracket(B.x1,1072,d,51,45,29);K.hole(70,d,45,6);K.hole(1052,d,45,6);});
 
     /* drain head (back face) */
-    K.rod('z',14,130,80,148,28,m.plastic,32);K.disc('z',10,130,80,133.7,m.hole);
+    K.rod('z',14,130,80,148,28,m.drain,32);K.disc('z',10,130,80,133.7,m.hole);
 
     /* outlet-face screws + nameplate */
     [330,400].forEach(x=>[78,180].forEach(h=>K.rod('z',5,x,h,B.d1+1.5,3,m.steel,14)));
