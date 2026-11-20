@@ -354,13 +354,13 @@ function getCss(v){return getComputedStyle(document.documentElement).getProperty
 let movers=[],lift=0;
 function renderPull(){
   const box=$('pullBox');if(!box)return;box.hidden=!movers.length;if(!movers.length)return;
-  const opts=[['in','收回','原位'],['side','側拉','50%'],['down','下拉','50%']];
+  const opts=[['in','收回','原位'],['side','側拉','50%']];
   $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+opts.map(([id,n,sp])=>
     '<button type="button" class="chip" data-i="'+i+'" data-id="'+id+'" aria-pressed="'+((mv.state||'in')===id?'true':'false')+'"><b>'+n+'</b><span>'+sp+'</span></button>').join('')).join('');
   $('pullRows').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const mv=movers[+b.dataset.i],id=b.dataset.id;
     mv.state=id==='in'?null:id;renderPull();
     if(id!=='in'){   // stop the turntable and turn the back (return side) toward the viewer; a little to the pull side for 側拉
-      setPlaying(false);state.angleGoal=orbit.th+PI+(id==='side'?0.55:0);}});
+      setPlaying(false);state.angleGoal=orbit.th+PI+0.55;}});
 }
 
 /* ---------- variants ---------- */

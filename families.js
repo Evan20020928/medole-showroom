@@ -88,7 +88,7 @@ F.filterSet=function(K,o){
    const cg=K.group(()=>{
     K.pleatPanel(cx0,cx1,cz0,cz1,dF,D(c.y[0]),c.pitch);
     c.tabs.forEach(t=>{if(t.side==='x'){const zc=cz0+t.zc*(cz1-cz0);K.box(cx0-t.out,cx0,zc-t.size/2,zc+t.size/2,dF,dF+t.t,m.carbonTab);}
-      else{const xc=cx0+t.xc*(cx1-cx0);K.box(xc-t.size/2,xc+t.size/2,cz0-t.out,cz0,dF,dF+t.t,m.carbonTab);}});});
+      /* bottom tab hidden (user request): it would hang below the rails */});});
    K.movers.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36});}
   const f=R.frame,dm=D((f.y[0]+f.y[1])/2);
   const pg=K.group(()=>{K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
