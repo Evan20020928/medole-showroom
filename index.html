@@ -119,7 +119,9 @@ button svg{width:16px;height:16px}
 .speed output{min-width:56px;color:var(--fg);font-variant-numeric:tabular-nums}
 
 @media (max-width:760px){
-  .sheet{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 62px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;max-height:50%;padding:12px 14px}
+  .sheet{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 62px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;max-height:46%;padding:12px 14px}
+  html.sheet-open .kpis{display:none}
+  html.sheet-open .head .eyebrow{display:none}
   .sheet[data-collapsed="true"] .body{display:none}
   .sheet-toggle{display:flex;justify-content:space-between;width:100%;padding:0;font:700 13px/1 var(--f-body);letter-spacing:.12em;color:var(--muted)}
   .sheet-toggle:hover{background:transparent}

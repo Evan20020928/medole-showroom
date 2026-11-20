@@ -397,7 +397,7 @@ const target=new T.Vector3();
 const VIEWS={iso:[0.62,1.16],front:[0,1.47],side:[PI/2,1.47],top:[0,0.1]};
 const orbit={th:VIEWS.iso[0],ph:VIEWS.iso[1],r:3,thGoal:VIEWS.iso[0],phGoal:VIEWS.iso[1],rGoal:3,rMin:.5,rMax:20};
 window.__orbit=orbit;window.__view=()=>({scene,target,mat,T,movers});   // test hooks (screenshots)
-function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),need=R_disc*1.18;return Math.max(need/f,need/(f*a))*1.04;}
+function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),need=R_disc*1.18;return Math.max(need/(f*viewFracH),need/(f*a))*1.04;}
 function placeCamera(){const sp=Math.sin(orbit.ph);camera.position.set(target.x+orbit.r*sp*Math.sin(orbit.th),target.y+orbit.r*Math.cos(orbit.ph),target.z+orbit.r*sp*Math.cos(orbit.th));camera.lookAt(target);}
 const ptrs=new Map();let pinch0=0,r0=0;
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('dragging');
@@ -425,7 +425,8 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 $('btnTags').onclick=e=>{state.tags=!state.tags;e.currentTarget.setAttribute('aria-pressed',state.tags);};
 $('btnDims').onclick=e=>{state.dims=!state.dims;e.currentTarget.setAttribute('aria-pressed',state.dims);if(dimGroup)dimGroup.visible=state.dims;};
 const sheet=$('sheet');
-$('sheetToggle').onclick=()=>{const c=sheet.dataset.collapsed!=='true';sheet.dataset.collapsed=c;$('sheetToggle').setAttribute('aria-expanded',!c);};
+$('sheetToggle').onclick=()=>{const c=sheet.dataset.collapsed!=='true';sheet.dataset.collapsed=c;$('sheetToggle').setAttribute('aria-expanded',!c);
+  document.documentElement.classList.toggle('sheet-open',!c);requestAnimationFrame(()=>{if(typeof refit==='function')refit();});};
 
 /* ---------- spec sheet ---------- */
 const OPT='選購';
@@ -538,7 +539,7 @@ function select(id,vkey,push){
     const v=parseVariant(def,vkey);current.v=v.key||null;
     applyFinish(def.finish);
     if(changedModel){const fp=def.footprint;buildStage(Math.hypot(fp.L+60,fp.D+60)*MM/2+0.05);
-      target.set(0,baseH+discH+(fp.H||300)*MM*0.42,0);orbit.rMin=R_disc*1.2;orbit.rMax=R_disc*8;orbit.rGoal=fitRadius();if(!orbit.r||orbit.r<0.01)orbit.r=orbit.rGoal;}
+      target.set(0,baseH+discH+(fp.H||300)*MM*0.42,0);orbit.rMin=R_disc*1.2;orbit.rGoal=fitRadius();orbit.rMax=Math.max(R_disc*8,orbit.rGoal*1.6);if(!orbit.r||orbit.r<0.01)orbit.r=orbit.rGoal;}
     buildProduct(def,v.key);
     $('placeholder').hidden=true;
     renderSheet(id,def,v);
@@ -690,13 +691,20 @@ new MutationObserver(syncTheme).observe(document.documentElement,{attributes:tru
 /* ---------- boot ---------- */
 /* desktop: the spec sheet docks on the right, so centre the stage in the space left of it */
 let viewOff=0;
+/* phone: the stage is centred (and sized) in the free band between the header and the bottom sheet */
+let viewOffY=0,viewFracH=1;
 function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;
   const docked=matchMedia('(min-width: 761px)').matches&&sheet&&sheet.offsetWidth;viewOff=docked?Math.min((sheet.offsetWidth+16)/2,w*0.3):0;
-  if(camera.setViewOffset){if(viewOff)camera.setViewOffset(w,h,viewOff,0,w,h);else if(camera.clearViewOffset)camera.clearViewOffset();}
+  viewOffY=0;viewFracH=1;
+  if(!docked&&sheet&&sheet.getBoundingClientRect){const cr=canvas.getBoundingClientRect(),hd=document.querySelector('.head');
+    const top=(hd?hd.getBoundingClientRect().bottom:cr.top)-cr.top+6,bot=sheet.getBoundingClientRect().top-cr.top-6;
+    if(bot-top>80){viewOffY=h/2-(top+bot)/2;viewFracH=Math.min(1,(bot-top)/h);}}
+  if(camera.setViewOffset){if(viewOff||viewOffY)camera.setViewOffset(w,h,viewOff,viewOffY,w,h);else if(camera.clearViewOffset)camera.clearViewOffset();}
   camera.updateProjectionMatrix();}
+function refit(){resize();const f=fitRadius();orbit.rMax=Math.max(orbit.rMax,f*1.6);orbit.rGoal=Math.max(orbit.rMin,f);}
 resize();
 const boot=fromHash();renderPicker();applySetManifest();select(boot.id,boot.v,true);orbit.r=orbit.rGoal=fitRadius();
-new ResizeObserver(()=>{const fit=fitRadius();resize();if(Math.abs(orbit.rGoal-fit)/fit<0.35)orbit.rGoal=fitRadius();}).observe(canvas);
+{const ro=new ResizeObserver(()=>{const fit=fitRadius();resize();const nf=fitRadius();orbit.rMax=Math.max(orbit.rMax,nf*1.6);if(Math.abs(orbit.rGoal-fit)/fit<0.35||Math.abs(nf-fit)/fit>0.05)orbit.rGoal=nf;});ro.observe(canvas);if(sheet)ro.observe(sheet);}
 setPlaying(state.playing);
 if(matchMedia('(min-width: 761px)').matches)sheet.dataset.collapsed='false';
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(current.id&&REG[current.id])buildProduct(REG[current.id],current.v);});
