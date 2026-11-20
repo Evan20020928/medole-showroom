@@ -9,7 +9,7 @@
     K.box(45,612,9.5,H,28,561,m.body,4);K.box(51,606,0,9.5,34,555,m.seam);
     [[188,194],[347,353]].forEach(([a,b])=>K.ridge(47,610,a-3,b+3,H,5,m.body));
     /* end rails with hanger holes (622 × 435) */
-    [[0,45],[612,657]].forEach(([x0,x1])=>{const hx=x0<45?37:637,ns=[54,486].map(d=>({x:hx,d,r:7,dir:x0<45?'-x':'+x'}));/* 左側長條開口；右側圓孔＋開口 */K.plateCut(x0,x1,28,510,40,43,ns,m.body);K.box(x0<45?42:612,x0<45?45:615,43,72,28,510,m.body);});
+    [[0,45],[612,657]].forEach(([x0,x1])=>{const hx=x0<45?27:637,ns=[54,486].map(d=>({x:hx,d,r:7,dir:x0<45?'-x':'+x'}));/* 左側長條開口；右側圓孔＋開口 */K.plateCut(x0,x1,28,510,40,43,ns,m.body);K.box(x0<45?42:612,x0<45?45:615,43,72,28,510,m.body);});
     [20,637].forEach(x=>[54,486].forEach(d=>K.hole(x,d,43,7,{dir:x<300?'-x':'+x'})));   // 吊孔向兩側開口（實際挖孔）
     /* control box on the front face + gland + lamp */
     K.box(45,226,9.5,H,561,629,m.body2,3);K.box(45,112,20,117,629,659,m.body);
