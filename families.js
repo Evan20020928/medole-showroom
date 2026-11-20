@@ -79,7 +79,7 @@ F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>{
 /* natural-return filters, built from the user's Rhino models (MD-30LB / MD-70LB 單出自然回.3dm, tools/filter_rules.py).
    Rules are mm offsets from the 初效濾網 frame rect and from the unit's back face (y = distance behind the back face).
    From the back face outward: 甲醛濾網 (pleated, optional) → 初效濾網 (black frame + diamond wire mesh), held by top/bottom rails.
-   Each filter has a side pull (側拉) and a bottom pull (下拉): thin tabs on the 甲醛濾網, black plastic-sheet strap loops on the 初效濾網. */
+   Each filter has a side pull (側拉) and a bottom pull (下拉): thin tabs on the 甲醛濾網, black plastic-sheet strap loops (拉帶) folded around the 初效濾網 frame edge. */
 F.FILTER_RULES={"30":{"frame":{"y":[16.19999999999999,19.80000000000001],"border":8,"r":8},"mesh":{"px":7.07,"pz":3.06,"wire":3.06},"rings":[{"side":"x","out":19.3,"in":11.0,"zc":0.515,"size":35.0},{"side":"z","out":19.3,"in":11.1,"xc":0.465,"size":35.0}],"carbon":{"dx":[-39.0,3.0],"dz":[-3.0,0.0],"y":[2.0,12.0],"pitch":6.0,"tabs":[{"side":"x","out":30.0,"zc":0.497,"size":15.0,"t":1.0},{"side":"z","out":30.0,"xc":0.509,"size":15.0,"t":1.0}]},"rails":[{"x":[-10.0,-25.0],"z":[-16.0,4.0],"ref":"top","y":[15.0,23.0]},{"x":[-26.0,-11.0],"z":[-16.0,4.0],"ref":"top","y":[0.0,15.0]},{"x":[-27.0,-10.0],"z":[-6.0,4.0],"ref":"bottom","y":[0.0,22.2]}]},"70":{"frame":{"y":[16.19999999999999,19.80000000000001],"border":8,"r":8},"mesh":{"px":10.02,"pz":3.9,"wire":3.89},"rings":[{"side":"z","out":24.5,"in":14.0,"xc":0.465,"size":49.6},{"side":"x","out":27.4,"in":15.6,"zc":0.515,"size":44.4}],"carbon":{"dx":[4.0,-4.7],"dz":[4.9,-0.7],"y":[5.0,13.0],"pitch":7.48,"tabs":[{"side":"z","out":36.3,"xc":0.509,"size":18.7,"t":0.8},{"side":"x","out":37.4,"zc":0.497,"size":18.2,"t":0.8}]},"rails":[{"x":[17.8,-20.8],"z":[-7.7,12.3],"ref":"top","y":[14.0,22.0]},{"x":[0.2,2.7],"z":[2.3,22.3],"ref":"top","y":[1.0,16.0]},{"x":[16.7,-19.4],"z":[-2.5,7.5],"ref":"bottom","y":[1.0,23.2]}]}};
 /* o: {src:'30'|'70', x0,x1,h0,h1: 初效濾網 frame rect, back: d of the back face (filters stack toward -d), carbon: include 甲醛濾網} -> outermost d */
 F.filterSet=function(K,o){
@@ -91,9 +91,11 @@ F.filterSet=function(K,o){
       else{const xc=cx0+t.xc*(cx1-cx0);K.box(xc-t.size/2,xc+t.size/2,cz0-t.out,cz0,dF,dF+t.t,m.carbonTab);}});}
   const f=R.frame;K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
   const dm=D((f.y[0]+f.y[1])/2);
-  /* pull loops: black plastic-sheet straps (photo); strap width 7.5 mm as in the Rhino model */
-  R.rings.forEach(g=>{if(g.side==='x')K.uring({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,size:g.size,r:0.8,strap:7.5});
-    else K.uring({axis:'z',at:o.h0,c:o.x0+g.xc*W,d:dm,out:g.out,inn:g.in,size:g.size,r:0.8,strap:7.5});});
+  /* 拉帶: black plastic-sheet strap looped around the frame edge (user sketch + photo); size from the Rhino loop:
+     reach past the edge, overlap on the faces, loop depth 7.5 mm around the frame, strap width = loop length along the edge */
+  const la=(R.loopDepth||7.5)/2;
+  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la});
+    else K.strapLoop({axis:'z',at:o.h0,c:o.x0+g.xc*W,d:dm,out:g.out,inn:g.in,width:g.size,a:la});});
   return Math.min(tip,D(f.y[1]));
 };
 /* legacy plain filter box (kept for reference) */

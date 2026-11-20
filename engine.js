@@ -243,6 +243,22 @@ function makeKit(group,center){
       if(o.strap){const sw=o.strap/2,st=0.6,sh=new T.Shape();sh.moveTo(-st,-sw);sh.lineTo(st,-sw);sh.lineTo(st,sw);sh.lineTo(-st,sw);sh.lineTo(-st,-sw);
         return add(shade(new T.Mesh(new T.ExtrudeGeometry(sh,{steps:72,bevelEnabled:false,extrudePath:curve}),mat.ring)));}
       return add(shade(new T.Mesh(new T.TubeGeometry(curve,72,r,8,false),mat.ring)));},
+    /* 拉帶: plastic-sheet strap folded around a filter edge into a loop that sticks out past the edge.
+       Profile (across the edge × depth) = U: front face → out → round → back face; extruded along the edge by the strap width.
+       axis 'x': vertical edge at x=at (outward -x), strap centred at h=c;  axis 'z': bottom edge at h=at (outward -h), centred at x=c.
+       out = reach past the edge, inn = overlap onto the faces, a = half the loop depth (around d), width = strap width, t = sheet thickness */
+    strapLoop(o){
+      const a=o.a,t=o.t||0.8,ro=a+t/2,ri=Math.max(0.3,a-t/2),ub=-(o.out-ro),ui=o.inn,s=new T.Shape();
+      s.moveTo(ui,ro);s.lineTo(ub,ro);s.absarc(ub,0,ro,PI/2,3*PI/2,false);s.lineTo(ui,-ro);s.lineTo(ui,-ri);s.lineTo(ub,-ri);
+      s.absarc(ub,0,ri,3*PI/2,PI/2,true);s.lineTo(ui,ri);s.lineTo(ui,ro);
+      const g=new T.ExtrudeGeometry(s,{depth:o.width,bevelEnabled:false,curveSegments:16});
+      const M=new T.Matrix4();
+      if(o.axis==='x')M.set(1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1);   // X=u→x, Z=width→h, Y=depth→d
+      else M.set(0,0,1,0, 1,0,0,0, 0,1,0,0, 0,0,0,1);               // Z=width→x, X=u→h, Y=depth→d
+      if(g.applyMatrix4)g.applyMatrix4(M);if(g.computeVertexNormals)g.computeVertexNormals();
+      const mm=add(shade(new T.Mesh(g,mat.ring)));
+      if(o.axis==='x')mm.position.set(CX(o.at),o.c-o.width/2,CZ(o.d));else mm.position.set(CX(o.c-o.width/2),o.at,CZ(o.d));
+      return mm;},
     nameplate(x,h,d,w,hh,dir,title,sub){
       const tex=canvasTex(1024,232,(g,W,H)=>{g.fillStyle='#f6f8f8';g.fillRect(0,0,W,H);g.fillStyle='#0e6f78';g.fillRect(0,0,22,H);
         g.fillStyle='#132022';g.font='800 100px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(title,62,H*0.42);
@@ -338,7 +354,7 @@ function variantName(def,v){
 const target=new T.Vector3();
 const VIEWS={iso:[0.62,1.16],front:[0,1.47],side:[PI/2,1.47],top:[0,0.1]};
 const orbit={th:VIEWS.iso[0],ph:VIEWS.iso[1],r:3,thGoal:VIEWS.iso[0],phGoal:VIEWS.iso[1],rGoal:3,rMin:.5,rMax:20};
-window.__orbit=orbit;   // test hook (screenshots)
+window.__orbit=orbit;window.__view=()=>({scene,target,mat,T});   // test hooks (screenshots)
 function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),need=R_disc*1.18;return Math.max(need/f,need/(f*a))*1.04;}
 function placeCamera(){const sp=Math.sin(orbit.ph);camera.position.set(target.x+orbit.r*sp*Math.sin(orbit.th),target.y+orbit.r*Math.cos(orbit.ph),target.z+orbit.r*sp*Math.cos(orbit.th));camera.lookAt(target);}
 const ptrs=new Map();let pinch0=0,r0=0;
