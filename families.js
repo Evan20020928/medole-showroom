@@ -85,16 +85,19 @@ F.filterSet=function(K,o){
   const R=F.FILTER_RULES[o.src||'70'],m=K.mat,D=y=>o.back-y,W=o.x1-o.x0,Hh=o.h1-o.h0;let tip=o.back;
   R.rails.forEach(r=>{const ref=r.ref==='top'?o.h1:o.h0;K.box(o.x0+r.x[0],o.x1+r.x[1],ref+r.z[0],ref+r.z[1],D(r.y[1]),D(r.y[0]),m.body2);tip=Math.min(tip,D(r.y[1]));});
   if(o.carbon){const c=R.carbon,cx0=o.x0+c.dx[0],cx1=o.x1+c.dx[1],cz0=o.h0+c.dz[0],cz1=o.h1+c.dz[1],dF=D(c.y[1]);
+   const cg=K.group(()=>{
     K.pleatPanel(cx0,cx1,cz0,cz1,dF,D(c.y[0]),c.pitch);
     c.tabs.forEach(t=>{if(t.side==='x'){const zc=cz0+t.zc*(cz1-cz0);K.box(cx0-t.out,cx0,zc-t.size/2,zc+t.size/2,dF,dF+t.t,m.carbonTab);}
-      else{const xc=cx0+t.xc*(cx1-cx0);K.box(xc-t.size/2,xc+t.size/2,cz0-t.out,cz0,dF,dF+t.t,m.carbonTab);}});}
-  const f=R.frame;K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
-  const dm=D((f.y[0]+f.y[1])/2);
+      else{const xc=cx0+t.xc*(cx1-cx0);K.box(xc-t.size/2,xc+t.size/2,cz0-t.out,cz0,dF,dF+t.t,m.carbonTab);}});});
+   K.movers.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36});}
+  const f=R.frame,dm=D((f.y[0]+f.y[1])/2);
+  const pg=K.group(()=>{K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
   /* 拉帶: black plastic-sheet strap looped around the frame edge (user sketch + photo); size from the Rhino loop:
      reach past the edge, overlap on the faces, loop depth 7.5 mm around the frame, strap width = loop length along the edge */
   const la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4;   // loop 1 mm puffier than the Rhino model; legs lie on the round frame (touching it)
   /* only the side-pull strap is shown: the bottom-pull strap would hang outside the rails (user request) */
-  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});
+  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});});
+  K.movers.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0});
   return Math.min(tip,D(f.y[1]));
 };
 /* 機殼頂部三角凸筋 (5 mm): two ridges along the length at ~27 % and ~57 % of the body depth from the back face */
@@ -126,7 +129,9 @@ F.C=function(K,P,v){
   let sTip=B.d1,sTop=0;
   P.supply.forEach(s=>{
     const cx=(s.x0+s.x1)/2,ch=s.oh||(s.h0+s.h1)/2,face=B.d1+s.dd;
-    const tip=K.stadium({x:cx,h:ch,d:face,dir:1,w:s.ow,hh:s.ohh,len:s.olen||6,t:4,plate:s.plate||null,m:m.plastic,
+    const tip=s.bare   // 只有黑色法蘭（照片）: black plate + flat-oval collar straight off the body face, open into the unit
+      ?K.stadium({x:cx,h:ch,d:B.d1,dir:1,w:s.ow,hh:s.ohh,len:s.dd+(s.olen||6),t:4,plate:[s.ow+34,s.ohh+34],plateT:5,m:m.plastic})
+      :K.stadium({x:cx,h:ch,d:face,dir:1,w:s.ow,hh:s.ohh,len:s.olen||6,t:4,plate:s.plate||null,m:m.plastic,
       recess:{x0:s.x0,x1:s.x1,h0:s.h0,h1:s.h1,depth:s.dd,m:m.body2}});
     sTip=Math.max(sTip,tip);sTop=Math.max(sTop,ch+s.ohh/2);});
   const sx=(P.supply[0].x0+P.supply[P.supply.length-1].x1)/2;

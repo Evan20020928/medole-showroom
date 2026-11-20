@@ -190,6 +190,8 @@ html.solo .modelbtn{display:none}
 #allHint p{margin:6px 0 0;font-size:11.5px;color:var(--muted);line-height:1.5}
 #allUrl{display:block;font:400 11px/1.4 var(--f-mono);word-break:break-all;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:7px 8px;user-select:all;-webkit-user-select:all}
 #variantBox.fixed .chiplbl,#variantBox.fixed .chips{display:none}
+#pullRows .chip{min-width:0}
+.pullhint{margin:6px 0 0;font-size:11.5px;color:var(--muted);line-height:1.5}
 .portlbl{grid-column:1/-1;font:600 11.5px/1.2 var(--f-body);color:var(--fg);margin:6px 0 0}
 .portlbl:first-child{margin-top:0}
 #variantBox.fixed h3{flex-direction:column;align-items:flex-start;gap:8px}
@@ -237,6 +239,11 @@ html.solo .modelbtn{display:none}
         <div class="chips" id="supplyChips"></div>
         <div class="chiplbl">回風</div>
         <div class="chips" id="returnChips"></div>
+      </section>
+      <section class="sec" id="pullBox" hidden>
+        <h3>濾網抽取 <output>互動</output></h3>
+        <div class="chips" id="pullRows"></div>
+        <p class="pullhint">按「側拉」或「下拉」會把濾網抽出約一半，並轉到回風側；吊隱機下拉時機體會稍微上移以便觀看。</p>
       </section>
       <section class="sec share" id="shareBox" hidden>
         <h3>分享此型號</h3>

@@ -98,8 +98,10 @@ function applyFinish(name){
 function shade(m){m.castShadow=true;m.receiveShadow=true;return m;}
 function makeKit(group,center){
   const CX=x=>x-center.x,CZ=d=>d-center.d,anchors=[],dims=[];
-  const add=o=>{group.add(o);return o;};
-  const K={anchors,dims,mat,PI,FRAME_ROD:2,
+  let tgt=group;const add=o=>{tgt.add(o);return o;};
+  const K={anchors,dims,mat,PI,FRAME_ROD:2,movers:[],
+    /* build parts inside a child group (so they can be moved later, e.g. a filter that slides out) */
+    group(fn){const g=new T.Group(),prev=tgt;tgt.add(g);tgt=g;try{fn();}finally{tgt=prev;}return g;},
     /* axis-aligned box, optional rounded vertical edges + bevel */
     box(x0,x1,h0,h1,d0,d1,m,r){
       const L=x1-x0,H=h1-h0,D=d1-d0;let mesh;
@@ -340,12 +342,26 @@ function buildProduct(def,vkey){
   g.add(dimGroup);dimGroup.visible=state.dims;
   g.scale.setScalar(MM);g.position.y=discH+0.003;
   product=g;turntable.add(product);
+  movers=K.movers;lift=0;renderPull();
   anchors=K.anchors;
   labelsEl.innerHTML='';
   anchors.forEach(a=>{const d=document.createElement('div');d.className='tag';d.innerHTML='<b>'+esc(a.code)+'</b>'+esc(a.name)+(a.tag?'<i>'+esc(a.tag)+'</i>':'');labelsEl.appendChild(d);a.el=d;});
   dimAnchors.forEach(a=>{const d=document.createElement('div');d.className='dim';d.textContent=a.txt;labelsEl.appendChild(d);a.el=d;});
 }
 function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+/* ---------- filters that slide out (互動：側拉／下拉約 50%) ---------- */
+let movers=[],lift=0;
+function renderPull(){
+  const box=$('pullBox');if(!box)return;box.hidden=!movers.length;if(!movers.length)return;
+  const opts=[['in','收回','原位'],['side','側拉','50%'],['down','下拉','50%']];
+  $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+opts.map(([id,n,sp])=>
+    '<button type="button" class="chip" data-i="'+i+'" data-id="'+id+'" aria-pressed="'+((mv.state||'in')===id?'true':'false')+'"><b>'+n+'</b><span>'+sp+'</span></button>').join('')).join('');
+  $('pullRows').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const mv=movers[+b.dataset.i],id=b.dataset.id;
+    mv.state=id==='in'?null:id;renderPull();
+    if(id!=='in'){   // stop the turntable and turn the back (return side) toward the viewer; a little to the pull side for 側拉
+      setPlaying(false);state.angleGoal=orbit.th+PI+(id==='side'?0.55:0);}});
+}
 
 /* ---------- variants ---------- */
 /* two kinds: supply×return chips (s1-r4), or per-port options (variants.ports + variants.opts, key = one opt id per port, e.g. "8-66-8-4444") */
@@ -689,6 +705,10 @@ function frame(now){
   if(state.playing)state.angle+=state.dir*state.rpm*2*PI/60*dt;
   else if(state.angleGoal!==null){let d=state.angleGoal-state.angle;d=Math.atan2(Math.sin(d),Math.cos(d));state.angle+=d*Math.min(1,dt*6);if(Math.abs(d)<1e-4){state.angle=state.angleGoal;state.angleGoal=null;}}
   turntable.rotation.y=state.angle;
+  if(product&&movers.length){const k=Math.min(1,dt*5);let need=0;
+    movers.forEach(mv=>{const gx=mv.state==='side'?-mv.side:0,gy=mv.state==='down'?-mv.down:0;mv.g.position.x+=(gx-mv.g.position.x)*k;mv.g.position.y+=(gy-mv.g.position.y)*k;
+      if(mv.state==='down')need=Math.max(need,mv.down-mv.hMin+20);});
+    lift+=(need-lift)*k;product.position.y=discH+0.003+lift*MM;}
   const k=Math.min(1,dt*8);orbit.th+=(orbit.thGoal-orbit.th)*k;orbit.ph+=(orbit.phGoal-orbit.ph)*k;orbit.r+=(orbit.rGoal-orbit.r)*k;
   placeCamera();renderer.render(scene,camera);
   const w=canvas.clientWidth,h=canvas.clientHeight;
