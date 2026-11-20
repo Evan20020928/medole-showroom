@@ -93,9 +93,9 @@ F.filterSet=function(K,o){
   const dm=D((f.y[0]+f.y[1])/2);
   /* 拉帶: black plastic-sheet strap looped around the frame edge (user sketch + photo); size from the Rhino loop:
      reach past the edge, overlap on the faces, loop depth 7.5 mm around the frame, strap width = loop length along the edge */
-  const la=(R.loopDepth||7.5)/2;
-  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la});
-    else K.strapLoop({axis:'z',at:o.h0,c:o.x0+g.xc*W,d:dm,out:g.out,inn:g.in,width:g.size,a:la});});
+  const la=(R.loopDepth||7.5)/2+1;   // loop 1 mm puffier than the Rhino model on each face (user request)
+  /* only the side-pull strap is shown: the bottom-pull strap would hang outside the rails (user request) */
+  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la});});
   return Math.min(tip,D(f.y[1]));
 };
 /* legacy plain filter box (kept for reference) */
