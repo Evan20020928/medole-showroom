@@ -227,7 +227,12 @@ function makeKit(group,center){
       K.box(Math.min(face,face+s*t),Math.max(face,face+s*t),h,h+leg,d-w/2,d+w/2,m);
       K.box(Math.min(tip,tip-s*t),Math.max(tip,tip-s*t),h-12,h,d-w/2,d+w/2,m);
     },
-    hole(x,d,h,r){K.torus('y',r+5,3.2,x,h+1,d,mat.rubber);K.rod('y',r,x,h-1.5,d,4,mat.hole,20);},
+    hole(x,d,h,r,slot){
+      if(!slot){K.torus('y',r+5,3.2,x,h+1,d,mat.rubber);K.rod('y',r,x,h-1.5,d,4,mat.hole,20);return;}
+      /* 開口吊孔: hole + a slot cut out to the ear edge (slot={dir:'-x'|'+x'|'-d'|'+d', len}) so threaded rod slides in from the side */
+      K.rod('y',r,x,h-1.5,d,4.2,mat.hole,20);const L=slot.len+0.6,z0=h-3.6,z1=h+0.6;
+      if(slot.dir==='-x')K.box(x-L,x,z0,z1,d-r,d+r,mat.hole);else if(slot.dir==='+x')K.box(x,x+L,z0,z1,d-r,d+r,mat.hole);
+      else if(slot.dir==='-d')K.box(x-r,x+r,z0,z1,d-L,d,mat.hole);else K.box(x-r,x+r,z0,z1,d,d+L,mat.hole);},
     /* 初效濾網: black frame (rounded outer corners, border b) between depths dA<dB, diamond wire mesh in the opening */
     filterFrame(x0,x1,h0,h1,dA,dB,b,r,mesh){
       /* outer edge = round stainless rod (白鐵), radius rt; inside it a light-grey fabric band out to border b; woven mesh in the opening */

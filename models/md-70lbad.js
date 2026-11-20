@@ -10,7 +10,7 @@
     [[188,194],[347,353]].forEach(([a,b])=>K.ridge(47,610,a-3,b+3,H,5,m.body));
     /* end rails with hanger holes (622 × 435) */
     [[0,45],[612,657]].forEach(([x0,x1])=>{K.box(x0,x1,40,43,28,510,m.body);K.box(x0<45?42:612,x0<45?45:615,43,72,28,510,m.body);});
-    [20,637].forEach(x=>[54,486].forEach(d=>K.hole(x,d,43,7)));
+    [20,637].forEach(x=>[54,486].forEach(d=>K.hole(x,d,43,7,{dir:x<300?'-x':'+x',len:x<300?20:20})));   // 吊孔向兩側開口
     /* control box on the front face + gland + lamp */
     K.box(45,226,9.5,H,561,629,m.body2,3);K.box(45,112,20,117,629,659,m.body);
     const fTip=F.filterSet(K,{src:'70',x0:126,x1:590,h0:67.1,h1:266.1,back:28,carbon:true});   // 濾網構造同 MD-70LB 3dm
