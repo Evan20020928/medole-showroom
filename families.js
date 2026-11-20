@@ -16,7 +16,8 @@ F.A=function(K,P,v){
   K.box(C.gx0,C.x0,C.gh0,C.gh1,C.d0,C.gd1,m.body);
   /* hanger brackets (ear at holes.h) */
   const HB=P.holes;
-  HB.d.forEach(d=>{K.bracket(0,P.brL,d,P.brW,HB.h,28);K.bracket(L,P.brR,d,P.brW,HB.h,28);HB.x.forEach(x=>K.hole(x,d,HB.h,6));});
+  HB.d.forEach(d=>{K.bracket(0,P.brL,d,P.brW,HB.h,28);K.hole(HB.x[0],d,HB.h,6);});
+  F.earPlate(K,L,P.brR,HB.d,P.brW,HB.h,28,HB.x[1]);   // 電器盒另一側：一片式吊耳（型錄外型圖）
   /* drain head on the back face */
   K.rod('z',14,P.drain.x,P.drain.h,-P.drain.len/2,P.drain.len,m.drain,32);K.obstacles.push({x0:P.drain.x-14,x1:P.drain.x+14,h0:P.drain.h-14,h1:P.drain.h+14,d0:-P.drain.len,d1:0});K.disc('z',10,P.drain.x,P.drain.h,-P.drain.len-0.3,m.hole);
   /* front face: screws, nameplate */
@@ -71,7 +72,12 @@ F.A=function(K,P,v){
 (function(){
 const F=window.MEDOLE_FAMILIES;
 /* hanger ears on both ends (ear top at h), with round hole + rubber washer */
-F.ears=function(K,o){const m=K.mat;o.d.forEach(d=>{K.bracket(o.faceL,o.tipL,d,o.w,o.h,o.leg||28);K.bracket(o.faceR,o.tipR,d,o.w,o.h,o.leg||28);o.x.forEach(x=>K.hole(x,d,o.h,6));});};
+F.ears=function(K,o){o.d.forEach(d=>{K.bracket(o.faceL,o.tipL,d,o.w,o.h,o.leg||28);K.hole(o.x[0],d,o.h,6);});
+  F.earPlate(K,o.faceR,o.tipR,o.d,o.w,o.h,o.leg||28,o.x[1]);};
+/* 一片式吊耳 on the end opposite the control box: one bracket running past both hanger points, each with the hanger hole + a small hole inboard */
+F.earPlate=function(K,face,tip,ds,w,h,leg,hx){const d0=Math.min(...ds)-w/2,d1=Math.max(...ds)+w/2;
+  K.bracket(face,tip,(d0+d1)/2,d1-d0,h,leg);
+  ds.forEach((d,i)=>{K.hole(hx,d,h,6);const s=d<(d0+d1)/2?1:-1;K.rod('y',3.2,hx,h-1.5,d+s*20,4,K.mat.hole,16);});};
 /* flat base plates under both ends with slotted holes (長圓孔) */
 F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>{
   K.box(o.xL[0],o.xL[1],0,t,d-o.w/2,d+o.w/2,m.body2);K.box(o.xR[0],o.xR[1],0,t,d-o.w/2,d+o.w/2,m.body2);
