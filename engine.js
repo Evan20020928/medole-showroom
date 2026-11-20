@@ -221,18 +221,33 @@ function makeKit(group,center){
       return o.d+dir*o.len;
     },
     /* hanger bracket: ear at height h (top face), from face x outward to tip, centred on plan d */
-    bracket(face,tip,d,w,h,leg,m){
+    /* flat plate h0..h1 over x0..x1 × d0..d1 with real cut-outs: each notch = round hole (x,d,r) + slot running out to the plate edge in dir */
+    plateCut(x0,x1,d0,d1,h0,h1,notches,m){
+      const E={'-d':[],'+x':[],'+d':[],'-x':[]};(notches||[]).forEach(n=>E[n.dir].push(n));
+      const P=[],arc=(cx,cd,r,a0)=>{for(let i=0;i<=16;i++){const a=(a0-180*i/16)*PI/180;P.push([cx+r*Math.cos(a),cd+r*Math.sin(a)]);}};
+      // CCW outline in (x,d): -d edge x0→x1, +x edge d0→d1, +d edge x1→x0, -x edge d1→d0
+      P.push([x0,d0]);E['-d'].sort((a,b)=>a.x-b.x).forEach(n=>{P.push([n.x-n.r,d0]);arc(n.x,n.d,n.r,180);P.push([n.x+n.r,d0]);});
+      P.push([x1,d0]);E['+x'].sort((a,b)=>a.d-b.d).forEach(n=>{P.push([x1,n.d-n.r]);arc(n.x,n.d,n.r,270);P.push([x1,n.d+n.r]);});
+      P.push([x1,d1]);E['+d'].sort((a,b)=>b.x-a.x).forEach(n=>{P.push([n.x+n.r,d1]);arc(n.x,n.d,n.r,0);P.push([n.x-n.r,d1]);});
+      P.push([x0,d1]);E['-x'].sort((a,b)=>b.d-a.d).forEach(n=>{P.push([x0,n.d+n.r]);arc(n.x,n.d,n.r,90);P.push([x0,n.d-n.r]);});
+      const sh=new T.Shape();P.forEach(([x,d],i)=>i?sh.lineTo(CX(x),CZ(d)):sh.moveTo(CX(x),CZ(d)));
+      const g=new T.ExtrudeGeometry(sh,{depth:h1-h0,bevelEnabled:false,curveSegments:4});g.rotateX(PI/2);g.translate(0,h1,0);
+      return add(shade(new T.Mesh(g,m||mat.body)));},
+    /* hanger ear: top plate (with optional cut-outs), up-stand on the body face, drop lip at the tip (lip is cut where an x-slot runs through it) */
+    bracket(face,tip,d,w,h,leg,m,notches){
       const s=Math.sign(tip-face),t=3;m=m||mat.body;
-      K.box(Math.min(face,tip),Math.max(face,tip),h-t,h,d-w/2,d+w/2,m);
+      if(notches&&notches.length)K.plateCut(Math.min(face,tip),Math.max(face,tip),d-w/2,d+w/2,h-t,h,notches,m);
+      else K.box(Math.min(face,tip),Math.max(face,tip),h-t,h,d-w/2,d+w/2,m);
       K.box(Math.min(face,face+s*t),Math.max(face,face+s*t),h,h+leg,d-w/2,d+w/2,m);
-      K.box(Math.min(tip,tip-s*t),Math.max(tip,tip-s*t),h-12,h,d-w/2,d+w/2,m);
+      const lx0=Math.min(tip,tip-s*t),lx1=Math.max(tip,tip-s*t);let cuts=(notches||[]).filter(n=>n.dir===(s>0?'+x':'-x')).map(n=>[n.d-n.r,n.d+n.r]).sort((a,b)=>a[0]-b[0]),from=d-w/2;
+      cuts.forEach(([c0,c1])=>{if(c0-from>0.5)K.box(lx0,lx1,h-12,h,from,c0,m);from=c1;});if(d+w/2-from>0.5)K.box(lx0,lx1,h-12,h,from,d+w/2,m);
     },
     hole(x,d,h,r,slot){
       if(!slot){K.torus('y',r+5,3.2,x,h+1,d,mat.rubber);K.rod('y',r,x,h-1.5,d,4,mat.hole,20);return;}
-      /* 開口吊孔: hole + a slot cut out to the ear edge (slot={dir:'-x'|'+x'|'-d'|'+d', len}) so threaded rod slides in from the side */
-      K.rod('y',r,x,h-1.5,d,4.2,mat.hole,20);const L=slot.len+0.6,z0=h-3.6,z1=h+0.6;
-      if(slot.dir==='-x')K.box(x-L,x,z0,z1,d-r,d+r,mat.hole);else if(slot.dir==='+x')K.box(x,x+L,z0,z1,d-r,d+r,mat.hole);
-      else if(slot.dir==='-d')K.box(x-r,x+r,z0,z1,d-L,d,mat.hole);else K.box(x-r,x+r,z0,z1,d,d+L,mat.hole);},
+      /* 開口吊孔: the hole and slot are real cut-outs in the plate (plateCut); the rubber grommet stays, with a gap where the slot leaves */
+      const R=r+5,gap=2*Math.asin(Math.min(0.95,(r+1)/R)),phi={'-x':PI,'+x':0,'-d':PI/2,'+d':1.5*PI}[slot.dir];
+      const g=new T.TorusGeometry(R,3.2,10,48,2*PI-gap);g.rotateZ(phi+gap/2);g.rotateX(-PI/2);
+      const o=add(shade(new T.Mesh(g,mat.rubber)));o.position.set(CX(x),h+1,CZ(d));},
     /* 初效濾網: black frame (rounded outer corners, border b) between depths dA<dB, diamond wire mesh in the opening */
     filterFrame(x0,x1,h0,h1,dA,dB,b,r,mesh){
       /* outer edge = round stainless rod (白鐵), radius rt; inside it a light-grey fabric band out to border b; woven mesh in the opening */
