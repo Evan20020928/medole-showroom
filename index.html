@@ -122,6 +122,14 @@ button svg{width:16px;height:16px}
   .sheet{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 62px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;max-height:46%;padding:12px 14px}
   html.sheet-open .kpis{display:none}
   html.sheet-open .head .eyebrow{display:none}
+  /* panel open: shorter panel, compact header and chips so the model gets more room */
+  html.sheet-open .sheet{max-height:39%;padding:8px 12px;gap:8px}
+  html.sheet-open .sheet .body{gap:10px}
+  html.sheet-open .head .model{font-size:28px;line-height:1}
+  html.sheet-open .headbtns{margin-top:6px}
+  html.sheet-open .modelbtn{min-height:34px;padding:6px 10px;font-size:13px}
+  html.sheet-open .sheet .chip{padding:5px 7px}
+  html.sheet-open .sheet .sec h3{margin-bottom:2px}
   .sheet[data-collapsed="true"] .body{display:none}
   .sheet-toggle{display:flex;justify-content:space-between;width:100%;padding:0;font:700 13px/1 var(--f-body);letter-spacing:.12em;color:var(--muted)}
   .sheet-toggle:hover{background:transparent}

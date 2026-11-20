@@ -397,7 +397,7 @@ const target=new T.Vector3();
 const VIEWS={iso:[0.62,1.16],front:[0,1.47],side:[PI/2,1.47],top:[0,0.1]};
 const orbit={th:VIEWS.iso[0],ph:VIEWS.iso[1],r:3,thGoal:VIEWS.iso[0],phGoal:VIEWS.iso[1],rGoal:3,rMin:.5,rMax:20};
 window.__orbit=orbit;window.__view=()=>({scene,target,mat,T,movers});   // test hooks (screenshots)
-function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),need=R_disc*1.18;return Math.max(need/(f*viewFracH),need/(f*a))*1.04;}
+function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),tight=viewFracH<0.8&&document.documentElement.classList.contains('sheet-open'),need=R_disc*(tight?0.9:1.18);return Math.max(need/(f*viewFracH),need/(f*a))*(tight?1:1.04);}   // small band (phone, panel open): let the disc rim bleed so the unit is larger
 function placeCamera(){const sp=Math.sin(orbit.ph);camera.position.set(target.x+orbit.r*sp*Math.sin(orbit.th),target.y+orbit.r*Math.cos(orbit.ph),target.z+orbit.r*sp*Math.cos(orbit.th));camera.lookAt(target);}
 const ptrs=new Map();let pinch0=0,r0=0;
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('dragging');
