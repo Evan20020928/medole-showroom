@@ -92,16 +92,26 @@ F.filterSet=function(K,o){
    const cd=[dF,D(c.y[0])],parts=[{x0:cx0,h0:cz0,h1:cz1,d0:cd[0],d1:cd[1]}];
    c.tabs.filter(t=>t.side==='x').forEach(t=>{const zc=cz0+t.zc*(cz1-cz0);parts.push({x0:cx0-t.out,h0:zc-t.size/2,h1:zc+t.size/2,d0:cd[0],d1:cd[1]});});
    K.movers.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36,parts});}
-  const f=R.frame,dm=D((f.y[0]+f.y[1])/2);
-  const pg=K.group(()=>{K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
-  /* 拉帶: black plastic-sheet strap looped around the frame edge (user sketch + photo); size from the Rhino loop:
-     reach past the edge, overlap on the faces, loop depth 7.5 mm around the frame, strap width = loop length along the edge */
-  const la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4;   // loop 1 mm puffier than the Rhino model; legs lie on the round frame (touching it)
-  /* only the side-pull strap is shown: the bottom-pull strap would hang outside the rails (user request) */
-  R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});});
-  const ld=(R.loopDepth||7.5)/2+2,pparts=[{x0:o.x0,h0:o.h0,h1:o.h1,d0:dm-ld,d1:dm+ld}];
-  R.rings.filter(g=>g.side==='x').forEach(g=>{const zc=o.h0+g.zc*Hh;pparts.push({x0:o.x0-g.out,h0:zc-g.size/2,h1:zc+g.size/2,d0:dm-ld,d1:dm+ld});});
-  K.movers.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0,parts:pparts});
+  const f=R.frame,dm=D((f.y[0]+f.y[1])/2),la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4,ld=(R.loopDepth||7.5)/2+2;
+  const straps=()=>R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});
+  if(o.fold3){
+    /* 三折式初效濾網 (130–300 L): three equal hinged panels; the leading panel (pull side, -x) carries the strap.
+       Hinges are vertical lines at x0+W/3 and x0+2W/3; panels fold outward (away from the back face). */
+    const T3=window.THREE,s3=W/3,xa=o.x0+s3,xb=o.x0+2*s3;let p1,p2;
+    const pg=K.group(()=>{K.group(()=>K.filterFrame(xb,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh));
+      p2=K.group(()=>K.filterFrame(xa,xb,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh));
+      p1=K.group(()=>{K.filterFrame(o.x0,xa,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);straps();});
+      [xa,xb].forEach(x=>[0.2,0.8].forEach(q=>K.rod('y',K.FRAME_ROD+0.6,x,o.h0+q*Hh,dm,16,m.inox,12)));});   // hinge knuckles
+    const h2=new T3.Group(),h1=new T3.Group();
+    h2.position.set(K.cx(xb),0,K.cz(dm));pg.add(h2);h2.add(p2);p2.position.set(-K.cx(xb),0,-K.cz(dm));
+    h1.position.set(K.cx(xa)-K.cx(xb),0,0);h2.add(h1);h1.add(p1);p1.position.set(-K.cx(xa),0,-K.cz(dm));
+    K.movers.unshift({name:'初效濾網（三折式）',g:pg,side:2*s3,fold:{step:s3,a1:Math.PI/6,a2:Math.PI/4,h1,h2},hMin:o.h0});
+  }else{
+    const pg=K.group(()=>{K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);straps();});
+    const pparts=[{x0:o.x0,h0:o.h0,h1:o.h1,d0:dm-ld,d1:dm+ld}];
+    R.rings.filter(g=>g.side==='x').forEach(g=>{const zc=o.h0+g.zc*Hh;pparts.push({x0:o.x0-g.out,h0:zc-g.size/2,h1:zc+g.size/2,d0:dm-ld,d1:dm+ld});});
+    K.movers.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0,parts:pparts});
+  }
   return Math.min(tip,D(f.y[1]));
 };
 /* 機殼頂部三角凸筋 (5 mm): two ridges along the length at ~27 % and ~57 % of the body depth from the back face */
@@ -145,7 +155,7 @@ F.C=function(K,P,v){
   let fTip=B.d0;
   if(rid==='r0'){   // 只有初效濾網：依該機型回風口尺寸，構造比照 MD-70LB 3dm
     const f=P.filter,fr={x0:f.x0+6,x1:f.x1-6,h0:Math.max(f.h0,48),h1:Math.min(f.h1,H-30)};
-    fTip=F.filterSet(K,{src:'70',x0:fr.x0,x1:fr.x1,h0:fr.h0,h1:fr.h1,back:B.d0,carbon:false});
+    fTip=F.filterSet(K,{src:'70',x0:fr.x0,x1:fr.x1,h0:fr.h0,h1:fr.h1,back:B.d0,carbon:false,fold3:true});   // 三折式
     K.tag((fr.x0+fr.x1)/2,fr.h1+40,fTip,[0,0,-1],'RA','自然回・初效濾網（側拉／下拉）');}
   else{const R=P.ret;K.box(R.x0,R.x1,R.h0,R.h1,R.d0,B.d0,m.body2,4);
     R.x.forEach(x=>K.stadium({x,h:R.h,d:R.d0,dir:-1,w:R.w,hh:R.hh,len:R.len,t:3,plate:R.plate,m:m.plastic}));

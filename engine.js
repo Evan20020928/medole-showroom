@@ -99,7 +99,7 @@ function shade(m){m.castShadow=true;m.receiveShadow=true;return m;}
 function makeKit(group,center){
   const CX=x=>x-center.x,CZ=d=>d-center.d,anchors=[],dims=[];
   let tgt=group;const add=o=>{tgt.add(o);return o;};
-  const K={anchors,dims,mat,PI,FRAME_ROD:2,movers:[],obstacles:[],
+  const K={anchors,dims,mat,PI,FRAME_ROD:2,movers:[],obstacles:[],cx:CX,cz:CZ,
     /* build parts inside a child group (so they can be moved later, e.g. a filter that slides out) */
     group(fn){const g=new T.Group(),prev=tgt;tgt.add(g);tgt=g;try{fn();}finally{tgt=prev;}return g;},
     /* axis-aligned box, optional rounded vertical edges + bevel */
@@ -396,7 +396,7 @@ function variantName(def,v){
 const target=new T.Vector3();
 const VIEWS={iso:[0.62,1.16],front:[0,1.47],side:[PI/2,1.47],top:[0,0.1]};
 const orbit={th:VIEWS.iso[0],ph:VIEWS.iso[1],r:3,thGoal:VIEWS.iso[0],phGoal:VIEWS.iso[1],rGoal:3,rMin:.5,rMax:20};
-window.__orbit=orbit;window.__view=()=>({scene,target,mat,T});   // test hooks (screenshots)
+window.__orbit=orbit;window.__view=()=>({scene,target,mat,T,movers});   // test hooks (screenshots)
 function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),need=R_disc*1.18;return Math.max(need/f,need/(f*a))*1.04;}
 function placeCamera(){const sp=Math.sin(orbit.ph);camera.position.set(target.x+orbit.r*sp*Math.sin(orbit.th),target.y+orbit.r*Math.cos(orbit.ph),target.z+orbit.r*sp*Math.cos(orbit.th));camera.lookAt(target);}
 const ptrs=new Map();let pinch0=0,r0=0;
@@ -710,7 +710,13 @@ function frame(now){
   else if(state.angleGoal!==null){let d=state.angleGoal-state.angle;d=Math.atan2(Math.sin(d),Math.cos(d));state.angle+=d*Math.min(1,dt*6);if(Math.abs(d)<1e-4){state.angle=state.angleGoal;state.angleGoal=null;}}
   turntable.rotation.y=state.angle;
   if(product&&movers.length){const k=Math.min(1,dt*5);let need=0;
-    movers.forEach(mv=>{const gx=mv.state==='side'?-mv.side:0,gy=mv.state==='down'?-mv.down:0;mv.g.position.x+=(gx-mv.g.position.x)*k;mv.g.position.y+=(gy-mv.g.position.y)*k;
+    movers.forEach(mv=>{
+      if(mv.fold){   // 三折式: slide 1/3 → fold 30° → slide another 1/3 → fold 45° (reverse when retracting)
+        const goal=mv.state==='side'?1:0;mv.t=(mv.t||0)+Math.sign(goal-(mv.t||0))*Math.min(Math.abs(goal-(mv.t||0)),dt*0.42);
+        const t=mv.t,seg=(a,b)=>Math.max(0,Math.min(1,(t-a)/(b-a))),ease=x=>x*x*(3-2*x),f=mv.fold;
+        mv.g.position.x=-f.step*(ease(seg(0,0.3))+ease(seg(0.45,0.75)));
+        f.h1.rotation.y=-f.a1*ease(seg(0.3,0.45));f.h2.rotation.y=-f.a2*ease(seg(0.75,1));return;}
+      const gx=mv.state==='side'?-mv.side:0,gy=mv.state==='down'?-mv.down:0;mv.g.position.x+=(gx-mv.g.position.x)*k;mv.g.position.y+=(gy-mv.g.position.y)*k;
       if(mv.state==='down')need=Math.max(need,mv.down-mv.hMin+20);});
     lift+=(need-lift)*k;product.position.y=discH+0.003+lift*MM;}
   const k=Math.min(1,dt*8);orbit.th+=(orbit.thGoal-orbit.th)*k;orbit.ph+=(orbit.phGoal-orbit.ph)*k;orbit.r+=(orbit.rGoal-orbit.r)*k;
