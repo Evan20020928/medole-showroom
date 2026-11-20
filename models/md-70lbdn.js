@@ -25,8 +25,12 @@
     K.box(29.5,96,9.5,310,227.7,406.5,m.body2,3);
     K.box(0,29.5,17,120,227.7,291.7,m.body);
 
-    /* hanger brackets: holes 982 x 250, ear top at h=45 */
-    [189,439].forEach(d=>{K.bracket(B.x0,43.8,d,51,45,29);K.bracket(B.x1,1072,d,51,45,29);K.hole(70,d,45,6);K.hole(1052,d,45,6);});
+    /* hanger brackets: holes 982 x 250, ear top at h=45.
+       Fan-section end: one continuous bracket along the depth with slotted holes (product photo);
+       control-box end: two separate ears (the control box fills the middle of that end). */
+    [189,439].forEach(d=>{K.bracket(B.x0,43.8,d,51,45,29);K.hole(70,d,45,6);});
+    {const da=B.d0+6,db=FN.d1-6;K.bracket(B.x1,1072,(da+db)/2,db-da,45,29);
+     [189,439].forEach(d=>K.box(1052-5.5,1052+5.5,41.6,45.5,d-14,d+14,m.hole));}   // 長圓孔
 
     /* drain head (back face) */
     K.rod('z',14,130,80,148,28,m.drain,32);K.disc('z',10,130,80,133.7,m.hole);
@@ -50,8 +54,6 @@
      const act=K.box(x-34.5,x+34.5,83.5,124.5,618,668,m.clear);act.castShadow=false;
      K.box(x-22,x+22,91.5,118.5,628,658,m.tealDark);}
 
-    /* electrical connector on the fan-section end (photo) */
-    K.box(B.x1,B.x1+14,215,249,FN.d1-48,FN.d1-22,m.grey);
 
     /* ---------- supply side (front, outlet face d=527) ---------- */
     let sTip=621,sTag=[593.5,300];
