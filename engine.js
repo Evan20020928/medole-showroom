@@ -160,7 +160,6 @@ function makeKit(group,center){
       for(let j=0;j<Rn;j++)for(let i=0;i<N;i++){const A=j*(N+1)+i,B=A+N+1;idx.push(A,B,A+1,B,B+1,A+1);}
       const lg=new T.BufferGeometry();lg.setAttribute('position',new T.Float32BufferAttribute(pos,3));lg.setIndex(idx);lg.computeVertexNormals();
       add(shade(new T.Mesh(lg,o.m||mat.plastic)));
-      K.disc('z',R,o.x,o.h,dP+dir*1,mat.hole);
       return K.duct({axis:'z',dir,x:o.x,h:o.h,d:dC,od:o.od,len:o.len,m:o.m});
     },
     /* flat-oval (stadium) duct along ±Z: outer w×hh, wall t, length len from face d; optional mounting plate [pw,ph]; dark bore */
