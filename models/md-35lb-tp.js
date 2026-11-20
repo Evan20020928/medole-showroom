@@ -10,7 +10,7 @@
     K.box(B.x0,B.x1,8,H,B.d0,B.d1,m.body,4);K.box(B.x0,B.x1,0,8,B.d0+20,B.d1-20,m.seam);
     K.box(B.x0,B.x1,8,9.5,315,317,m.seam);
     F.basePlates(K,{xL:[0,40],xR:[640,680],d:[92,232],w:60,slot:[20,660],t:5});
-    K.box(40,212,8,H-2,B.d1,B.d1+58,m.body2,3);K.rod('z',9,64,225,B.d1+61,6,m.led,24);
+    K.box(40,212,8,H-2,B.d1,B.d1+58,m.body2,3);
     F.filter(K,{x0:225,x1:599,d0:0,d1:12,h0:16,h1:258});
     const dr=F.drain(K,{axis:'x',x:40,d:34,h:55,len:20});
     F.screws(K,[[242,161],[314,161],[242,61],[314,61]],B.d1);

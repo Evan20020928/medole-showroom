@@ -10,7 +10,6 @@
     K.box(B.x0,B.x1,9.5,11,471,473,m.seam);
     [[256,267],[363,373]].forEach(([a,b])=>K.box(B.x0+2,B.x1-2,H,H+3,a,b,m.body2));
     K.box(30,96,67,H,222,404,m.body2,3);K.box(0,30,67,168,222,288,m.body);
-    K.rod('z',9,48,202,407,6,m.steel,6);
     F.ears(K,{faceL:B.x0,tipL:50,faceR:B.x1,tipR:1078,d:[182,442],w:56,h:51,x:[68,1056]});
     const dr=F.drain(K,{axis:'z',x:130.5,d:B.d0,h:90,len:29});
     K.box(289,1034,75,385,93,B.d0,m.body2,4);

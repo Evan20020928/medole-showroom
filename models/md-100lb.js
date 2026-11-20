@@ -25,7 +25,7 @@ const RET=OPTS.concat([{id:'f',name:'自然回',spec:'甲醛+初效',whole:true}
     K.box(B.x0,B.x1,9.5,H,B.d0,B.d1,m.body,5);K.box(B.x0+6,B.x1-6,0,9.5,B.d0+6,B.d1-6,m.seam);
     K.box(B.x0,B.x1,9.5,11,459,461,m.seam);
     [[246,256],[346,356]].forEach(([a,b])=>K.box(B.x0+2,B.x1-2,H,H+3,a,b,m.body2));
-    K.box(30,98,9.5,H,219,400,m.body2,3);K.box(0,30,17,119,219,284,m.body);K.rod('z',10,48,127,403,6,m.led,24);
+    K.box(30,98,9.5,H,219,400,m.body2,3);K.box(0,30,17,119,219,284,m.body);
     F.ears(K,{faceL:B.x0,tipL:47,faceR:B.x1,tipR:1080,d:[180,430],w:50,h:45,x:[72,1060]});
     const dr=F.drain(K,{axis:'z',x:131,d:B.d0,h:80,len:27});
 

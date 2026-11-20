@@ -14,14 +14,13 @@ F.A=function(K,P,v){
   /* control box, gland, lamp */
   const C=P.ctrl;K.box(C.x0,C.x1,P.base,H,C.d0,C.d1,m.body2,3);
   K.box(C.gx0,C.x0,C.gh0,C.gh1,C.d0,C.gd1,m.body);
-  K.rod('z',10,C.x0+13,C.lampH,C.d1+3,6,m.led,24);
   /* hanger brackets (ear at holes.h) */
   const HB=P.holes;
   HB.d.forEach(d=>{K.bracket(0,P.brL,d,P.brW,HB.h,28);K.bracket(L,P.brR,d,P.brW,HB.h,28);HB.x.forEach(x=>K.hole(x,d,HB.h,6));});
   /* drain head on the back face */
   K.rod('z',14,P.drain.x,P.drain.h,-P.drain.len/2,P.drain.len,m.drain,32);K.disc('z',10,P.drain.x,P.drain.h,-P.drain.len-0.3,m.hole);
   /* front face: screws, nameplate */
-  P.screws.x.forEach(x=>P.screws.h.forEach(h=>K.rod('z',4.5,x,h,D+1.5,3,m.steel,14)));
+  P.screws.x.forEach(x=>P.screws.h.forEach(h=>K.screw(x,h,D,1,4.5)));
   K.nameplate(P.plate.x,P.plate.h,D+0.8,150,40,'z+',P.id,P.plate.sub);
 
   /* ---------- supply (front face d=D) ---------- */
@@ -104,7 +103,7 @@ F.filter=function(K,o){const m=K.mat;K.box(o.x0,o.x1,o.h0,o.h1,o.d0,o.d1,m.body2
 F.drain=function(K,o){const m=K.mat,len=o.len||26;
   if(o.axis==='x'){K.rod('x',13,o.x-len/2,o.h,o.d,len,m.drain,28);K.disc('x',9,o.x-len-0.3,o.h,o.d,m.hole);return [o.x-len,o.h,o.d];}
   K.rod('z',13,o.x,o.h,o.d-len/2,len,m.drain,28);K.disc('z',9,o.x,o.h,o.d-len-0.3,m.hole);return [o.x,o.h,o.d-len];};
-F.screws=function(K,list,d){list.forEach(([x,h])=>K.rod('z',4.5,x,h,d+1.5,3,K.mat.steel,14));};
+F.screws=function(K,list,d){list.forEach(([x,h])=>K.screw(x,h,d,1,4.5));};
 })();
 
 /* Family C: tall white units with flat-oval 10" flanges (MD-130LB, MD-210LB, MD-250LB, MD-300LBD).
@@ -119,8 +118,7 @@ F.C=function(K,P,v){
   F.basePlates(K,{xL:[0,B.x0],xR:[B.x1,P.L],d:P.plates.d,w:P.plates.w,slot:P.plates.slot});
   /* front-mounted control box (電氣蓋) */
   const C=P.ctrl;K.box(C.x0,C.x1,C.h0,C.h1,B.d1,B.d1+C.dd,m.body2,3);
-  K.rod('z',9,C.x0+24,C.h1-40,B.d1+C.dd+3,6,m.led,24);
-  [[C.x0+12,C.h0+12],[C.x1-12,C.h0+12],[C.x0+12,C.h1-12],[C.x1-12,C.h1-12]].forEach(([x,h])=>K.rod('z',3.5,x,h,B.d1+C.dd+1.5,3,m.steel,10));
+  [[C.x0+12,C.h0+12],[C.x1-12,C.h0+12],[C.x0+12,C.h1-12],[C.x1-12,C.h1-12]].forEach(([x,h])=>K.screw(x,h,B.d1+C.dd,1,3.5));
   /* supply: boxes with flat-oval outlets */
   let sTip=B.d1,sTop=0;
   P.supply.forEach(s=>{

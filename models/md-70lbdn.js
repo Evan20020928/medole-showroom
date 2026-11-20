@@ -18,12 +18,11 @@
     K.box(FN.x0,B.x1,B.h0,B.h1,B.d0,FN.d1,m.body,5);
     K.box(B.x0+6,B.x1-6,0,B.h0,B.d0+6,B.d1-6,m.seam);
     K.box(FN.x0-16,FN.x0,B.h0+12,B.h1-6,B.d1,B.d1+4,m.body2);
-    [B.h0+30,B.h1-30].forEach(h=>K.rod('z',3.5,FN.x0-8,h,B.d1+5,4,m.steel,12));
+    [B.h0+30,B.h1-30].forEach(h=>K.screw(FN.x0-8,h,B.d1+4,1,3.5));
 
     /* control box + gland + lamp (left end) */
     K.box(29.5,96,9.5,310,227.7,406.5,m.body2,3);
     K.box(0,29.5,17,120,227.7,291.7,m.body);
-    K.rod('z',11,44,128,409.5,6,m.led,24);
 
     /* hanger brackets: holes 982 x 250, ear top at h=45 */
     [189,439].forEach(d=>{K.bracket(B.x0,43.8,d,51,45,29);K.bracket(B.x1,1072,d,51,45,29);K.hole(70,d,45,6);K.hole(1052,d,45,6);});
@@ -32,7 +31,7 @@
     K.rod('z',14,130,80,148,28,m.drain,32);K.disc('z',10,130,80,133.7,m.hole);
 
     /* outlet-face screws + nameplate */
-    [330,400].forEach(x=>[78,180].forEach(h=>K.rod('z',5,x,h,B.d1+1.5,3,m.steel,14)));
+    [330,400].forEach(x=>[78,180].forEach(h=>K.screw(x,h,B.d1,1,5)));
     K.nameplate(200,58,B.d1+0.8,160,42,'z+','MD-70LBDN','吊隱式新風除濕機 70L/日');
 
     /* fresh-air filter box (新風過濾網) + rail + hex thumb nuts */
