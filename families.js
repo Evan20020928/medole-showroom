@@ -156,6 +156,8 @@ F.C=function(K,P,v){
   /* dims */
   const dB=rid==='r0'?fTip:P.ret.d0-P.ret.len;
   K.dim([0,0,sTip],[P.L,0,sTip],[0,0,90],String(P.dimL));
+  {const sl=P.plates.slot,pd=P.plates.d[0];   // 吊耳（底板吊孔）距離, on the back side like MD-140LB
+   K.dim([sl[0],5,pd],[sl[1],5,pd],[0,0,-(pd-dB)-120],String(Math.round(sl[1]-sl[0])));}
   K.dim([P.L,0,dB],[P.L,0,sTip],[90,0,0],String(P.dimD&&rid!=='r0'?P.dimD:Math.round(sTip-dB)));
   K.dim([B.x0,0,B.d1],[B.x0,H,B.d1],[0,0,150],String(H));
 };
