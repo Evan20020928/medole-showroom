@@ -33,7 +33,7 @@
      [189,439].forEach(d=>K.box(1052-5.5,1052+5.5,41.6,45.5,d-14,d+14,m.hole));}   // 長圓孔
 
     /* drain head (back face) */
-    K.rod('z',14,130,80,148,28,m.drain,32);K.disc('z',10,130,80,133.7,m.hole);
+    K.rod('z',14,130,80,148,28,m.drain,32);K.obstacles.push({x0:116,x1:144,h0:66,h1:94,d0:134,d1:162});K.disc('z',10,130,80,133.7,m.hole);
 
     /* outlet-face screws + nameplate */
     [330,400].forEach(x=>[78,180].forEach(h=>K.screw(x,h,B.d1,1,5)));
@@ -78,11 +78,11 @@
     /* ---------- return side (back, filter return box) ---------- */
     const rid=v.ret.id;let rTip=0,rTagX=542.5;
     if(rid==='r1'){
-      K.box(288,872,79,310,95,162,m.body2,4);
+      K.box(288,872,79,310,95,162,m.body2,4);window.MEDOLE_FAMILIES.boxFilters(K,{x0:288,x1:872,h0:79,h1:310,d0:95,d1:162},{src:'70',carbon:true});
       K.ovalDuct({x:569,d:95,dir:-1,hPlate:195,h:195,plateW:270,plateH:148,plateT:18.5,cone:28.5,od:OD8,len:42});
       rTip=6;rTagX=569;
     }else{
-      K.box(286.8,1026.5,79,310,49,162,m.body2,4);
+      K.box(286.8,1026.5,79,310,49,162,m.body2,4);window.MEDOLE_FAMILIES.boxFilters(K,{x0:286.8,x1:1026.5,h0:79,h1:310,d0:49,d1:162},{src:'70',carbon:true});
       const set=rid==='r2'?[[455.5,OD6],[686,OD6]]:rid==='r3'?[[382,OD4],[551,OD6],[716,OD4]]:[[353.5,OD4],[479.5,OD4],[605.5,OD4],[731.5,OD4]];
       set.forEach(([x,od])=>K.duct({axis:'z',dir:-1,x,h:195,d:49,od,len:od===OD6?55.4:49,flare:true,flareR:od===OD6?12:7}));
       rTip=set.some(s=>s[1]===OD6)?-6.4:0;

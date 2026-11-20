@@ -13,6 +13,7 @@
     F.ears(K,{faceL:B.x0,tipL:50,faceR:B.x1,tipR:1078,d:[182,442],w:56,h:51,x:[68,1056]});
     const dr=F.drain(K,{axis:'z',x:130.5,d:B.d0,h:90,len:29});
     K.box(289,1034,75,385,93,B.d0,m.body2,4);
+    F.boxFilters(K,{x0:289,x1:1034,h0:75,h1:385,d0:93,d1:B.d0},{src:'70',carbon:false,fold3:true});   // 三折式初效濾網
     [483.5,836.2].forEach(x=>K.ovalDuct({x,d:93,dir:-1,hPlate:230,h:230,plateW:276,plateH:148,plateT:21.6,cone:27.1,od:193,len:44.3}));
     [448.5,860.3].forEach(x=>K.ovalDuct({x,d:B.d1,dir:1,hPlate:238,h:227,plateW:276,plateH:148,plateT:22,cone:28,od:193,len:43.6}));
     F.screws(K,[[618,214],[691,214],[618,115],[691,115]],B.d1);

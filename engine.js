@@ -344,8 +344,9 @@ function buildProduct(def,vkey){
   product=g;turntable.add(product);
   /* side pull stops before anything in its path (e.g. the drain head): travel = min(50 %, gap to the nearest obstacle − 3 mm) */
   K.movers.forEach(mv=>{if(!mv.parts)return;let lim=mv.side;   // parts: boxes of the moving filter (frame, panel, tab, strap…)
-    mv.parts.forEach(e=>K.obstacles.forEach(ob=>{if(ob.h1>e.h0&&ob.h0<e.h1&&ob.d1>e.d0&&ob.d0<e.d1&&ob.x1<=e.x0+0.5)lim=Math.min(lim,e.x0-ob.x1-3);}));
+    mv.parts.forEach(e=>K.obstacles.forEach(ob=>{if(!ob.slot&&ob.h1>e.h0&&ob.h0<e.h1&&ob.d1>e.d0&&ob.d0<e.d1&&ob.x1<=e.x0+0.5)lim=Math.min(lim,e.x0-ob.x1-3);}));
     mv.side=Math.max(0,lim);});
+  K.movers.forEach(mv=>{if(mv.fold)mv.fold.plan=planFold(mv.fold,K.obstacles);});
   movers=K.movers;lift=0;renderPull();
   anchors=K.anchors;
   labelsEl.innerHTML='';
@@ -356,10 +357,23 @@ function getCss(v){return getComputedStyle(document.documentElement).getProperty
 
 /* ---------- filters that slide out (互動：側拉／下拉約 50%) ---------- */
 let movers=[],lift=0;
+/* 三折式 path planner (top view, x–d plane): slide s1 → fold t1 → slide s2 → fold t2, each step as far as it can go (≤ 1/3, 30°, 1/3, 45°)
+   without any panel touching an obstacle (drain head, the return box outside its slot band). Panels fold toward −d (away from the unit). */
+function planFold(f,obs){
+  const S=f.step,band=obs.filter(o=>o.h1>f.y0&&o.h0<f.y1),pad=2;
+  const hit=(x,d)=>band.some(o=>{const inside=x>o.x0-f.ht-pad&&x<o.x1+f.ht+pad&&d>o.d0-f.ht-pad&&d<o.d1+f.ht+pad;
+    if(!inside)return false;if(o.slot)return x<o.x0+0.5?false:!(d-f.ht>=o.slot[0]-0.5&&d+f.ht<=o.slot[1]+0.5);return true;});
+  const segHit=(ax,ad,bx,bd)=>{const n=Math.max(2,Math.ceil(Math.hypot(bx-ax,bd-ad)/3));for(let i=0;i<=n;i++){const t=i/n;if(hit(ax+(bx-ax)*t,ad+(bd-ad)*t))return true;}return false;};
+  const pose=(s,t1,t2)=>{const h2x=f.x0+2*S-s,d=f.dm,u2=[-Math.cos(t2),-Math.sin(t2)],h1=[h2x+S*u2[0],d+S*u2[1]],u1=[-Math.cos(t1+t2),-Math.sin(t1+t2)],L=S+f.out;
+    return segHit(h2x,d,h2x+S,d)||segHit(h2x,d,h1[0],h1[1])||segHit(h1[0],h1[1],h1[0]+L*u1[0],h1[1]+L*u1[1]);};
+  const slide=(from,max,t1,t2)=>{let s=0;for(let k=1;k<=max;k+=2){if(pose(from+k,t1,t2))break;s=k;}return Math.min(s,max);};
+  const turn=(s,max,fix,which)=>{let a=0;const st=max/24;for(let k=1;k<=24;k++){const v=st*k;if(which===1?pose(s,v,fix):pose(s,fix,v))break;a=v;}return a;};
+  const s1=slide(0,S,0,0),t1=turn(s1,f.a1,0,1),s2=slide(s1,S,t1,0),t2=turn(s1+s2,f.a2,t1,2);
+  return {s1,t1,s2,t2};
+}
 function renderPull(){
   const box=$('pullBox');if(!box)return;box.hidden=!movers.length;if(!movers.length)return;
-  const opts=[['in','收回','原位'],['side','側拉','50%']];
-  $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+opts.map(([id,n,sp])=>
+  $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+[['in','收回','原位'],['side','側拉',mv.fold?'抽出 2/3・折疊':'50%']].map(([id,n,sp])=>
     '<button type="button" class="chip" data-i="'+i+'" data-id="'+id+'" aria-pressed="'+((mv.state||'in')===id?'true':'false')+'"><b>'+n+'</b><span>'+sp+'</span></button>').join('')).join('');
   $('pullRows').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const mv=movers[+b.dataset.i],id=b.dataset.id;
     mv.state=id==='in'?null:id;renderPull();
@@ -518,6 +532,7 @@ function renderShare(id,v){
 }
 $('btnCopy').onclick=()=>{const t=$('shareUrl').textContent,done=()=>{$('btnCopy').textContent='已複製';setTimeout(()=>$('btnCopy').textContent='複製連結',1600);};
   try{navigator.clipboard.writeText(t).then(done,()=>selectText());}catch(e){selectText();}};
+document.addEventListener('click',e=>{const p=$('efPop');if(p&&!p.hidden&&!p.contains(e.target)){p.hidden=true;const b=$('btnEf');if(b)b.setAttribute('aria-expanded','false');}});
 function selectText(){const r=document.createRange();r.selectNodeContents($('shareUrl'));const s=getSelection();s.removeAllRanges();s.addRange(r);}
 
 /* ---------- head ---------- */
@@ -526,7 +541,17 @@ function renderHead(id){
   const m=id.match(/^(MD-)(A?)(\d+)(.*)$/);
   $('modelName').innerHTML=m?esc(m[1]+m[2])+'<span>'+esc(m[3])+'</span>'+esc(m[4]):esc(id);
   $('eyebrow').textContent='米多力・'+((def&&def.kind)||'吊隱式風管除濕機');
-  $('kpis').innerHTML=[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數']].filter(k=>k[0]).map(k=>'<div><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+'</span></div>').join('');
+  $('kpis').innerHTML=[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']].filter(k=>k[0]).map(k=>k[3]?
+    '<button type="button" class="kpi-ef" id="btnEf" aria-expanded="false" aria-controls="efPop"><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+' <i aria-hidden="true">ⓘ</i></span></button>':
+    '<div><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+'</span></div>').join('');
+  /* 能源因數算法: EF = 除濕能力(27°C/60%, L/日) ÷ 消耗功率(W) × 1000 ÷ 24 */
+  const pop=$('efPop'),cap=+s.cap27,w=+s.watt,calc=cap&&w?cap/w*1000/24:0;
+  if(pop){pop.hidden=true;
+    pop.innerHTML='<b>能源因數 EF（L/kWh）</b><p>每用 1 度電（1 kWh）能除掉幾公升的水，數值越高越省電。</p>'+
+      '<code>EF ＝ 除濕能力 ÷ 消耗功率 × 1000 ÷ 24</code><p class="ef-note">× 1000：W 換成 kW；÷ 24：每日換成每小時</p>'+
+      (calc?'<p class="ef-calc">本機：'+esc(s.cap27)+' L/日 ÷ '+esc(s.watt)+' W × 1000 ÷ 24 ≈ <b>'+calc.toFixed(2)+'</b></p>'+
+        '<p class="ef-note">除濕能力以 27°C／60% 條件計'+(Math.abs(calc-(+s.ef))>0.03?'；型錄標示 '+esc(s.ef)+'，與標示總功率試算有差異，以型錄為準':'')+'。</p>':'');
+    const b=$('btnEf');if(b)b.onclick=e=>{e.stopPropagation();pop.hidden=!pop.hidden;b.setAttribute('aria-expanded',!pop.hidden);};}
   document.title=id+' 展示台';
 }
 
@@ -722,8 +747,9 @@ function frame(now){
       if(mv.fold){   // 三折式: slide 1/3 → fold 30° → slide another 1/3 → fold 45° (reverse when retracting)
         const goal=mv.state==='side'?1:0;mv.t=(mv.t||0)+Math.sign(goal-(mv.t||0))*Math.min(Math.abs(goal-(mv.t||0)),dt*0.42);
         const t=mv.t,seg=(a,b)=>Math.max(0,Math.min(1,(t-a)/(b-a))),ease=x=>x*x*(3-2*x),f=mv.fold;
-        mv.g.position.x=-f.step*(ease(seg(0,0.3))+ease(seg(0.45,0.75)));
-        f.h1.rotation.y=-f.a1*ease(seg(0.3,0.45));f.h2.rotation.y=-f.a2*ease(seg(0.75,1));return;}
+        const P=f.plan||{s1:f.step,t1:f.a1,s2:f.step,t2:f.a2};
+        mv.g.position.x=-(P.s1*ease(seg(0,0.3))+P.s2*ease(seg(0.45,0.75)));
+        f.h1.rotation.y=-P.t1*ease(seg(0.3,0.45));f.h2.rotation.y=-P.t2*ease(seg(0.75,1));return;}
       const gx=mv.state==='side'?-mv.side:0,gy=mv.state==='down'?-mv.down:0;mv.g.position.x+=(gx-mv.g.position.x)*k;mv.g.position.y+=(gy-mv.g.position.y)*k;
       if(mv.state==='down')need=Math.max(need,mv.down-mv.hMin+20);});
     lift+=(need-lift)*k;product.position.y=discH+0.003+lift*MM;}

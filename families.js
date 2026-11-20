@@ -48,6 +48,7 @@ F.A=function(K,P,v){
     K.tag(rTag[0],rTag[1],rTip,[0,0,-1],'RA','自然回・甲醛＋初效濾網（側拉／下拉）');
   }else{
     const R=RB[rid];K.box(R.box[0],R.box[1],RB.h[0],RB.h[1],R.d0,0,m.body2,4);
+    F.boxFilters(K,{x0:R.box[0],x1:R.box[1],h0:RB.h[0],h1:RB.h[1],d0:R.d0,d1:0},{src:P.filter.src,carbon:true});
     if(R.oval){const o=R.oval;K.ovalDuct({x:o.x,d:R.d0,dir:-1,hPlate:RB.hc,h:RB.hc,plateW:o.pw,plateH:148,plateT:o.t,cone:o.cone,od:193,len:o.len});
       rTip=R.d0-o.t-o.cone-o.len;rTag=[o.x,RB.hc+97+24];}
     else{R.ducts.forEach(([x,od,len])=>K.duct({axis:'z',dir:-1,x,h:RB.hc,d:R.d0,od,len,flare:true,flareR:od>120?12:7}));
@@ -80,39 +81,58 @@ F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>{
    From the back face outward: 甲醛濾網 (pleated, optional) → 初效濾網 (black frame + diamond wire mesh), held by top/bottom rails.
    Each filter has a side pull (側拉) and a bottom pull (下拉): thin tabs on the 甲醛濾網, black plastic-sheet strap loops (拉帶) folded around the 初效濾網 frame edge. */
 F.FILTER_RULES={"30":{"frame":{"y":[16.19999999999999,19.80000000000001],"border":8,"r":8},"mesh":{"px":7.07,"pz":3.06,"wire":3.06},"rings":[{"side":"x","out":19.3,"in":11.0,"zc":0.515,"size":35.0},{"side":"z","out":19.3,"in":11.1,"xc":0.465,"size":35.0}],"carbon":{"dx":[-39.0,3.0],"dz":[-3.0,0.0],"y":[2.0,12.0],"pitch":6.0,"tabs":[{"side":"x","out":30.0,"zc":0.497,"size":15.0,"t":1.0},{"side":"z","out":30.0,"xc":0.509,"size":15.0,"t":1.0}]},"rails":[{"x":[-10.0,-25.0],"z":[-16.0,4.0],"ref":"top","y":[15.0,23.0]},{"x":[-26.0,-11.0],"z":[-16.0,4.0],"ref":"top","y":[0.0,15.0]},{"x":[-27.0,-10.0],"z":[-6.0,4.0],"ref":"bottom","y":[0.0,22.2]}]},"70":{"frame":{"y":[16.19999999999999,19.80000000000001],"border":8,"r":8},"mesh":{"px":10.02,"pz":3.9,"wire":3.89},"rings":[{"side":"z","out":24.5,"in":14.0,"xc":0.465,"size":49.6},{"side":"x","out":27.4,"in":15.6,"zc":0.515,"size":44.4}],"carbon":{"dx":[4.0,-4.7],"dz":[4.9,-0.7],"y":[5.0,13.0],"pitch":7.48,"tabs":[{"side":"z","out":36.3,"xc":0.509,"size":18.7,"t":0.8},{"side":"x","out":37.4,"zc":0.497,"size":18.2,"t":0.8}]},"rails":[{"x":[17.8,-20.8],"z":[-7.7,12.3],"ref":"top","y":[14.0,22.0]},{"x":[0.2,2.7],"z":[2.3,22.3],"ref":"top","y":[1.0,16.0]},{"x":[16.7,-19.4],"z":[-2.5,7.5],"ref":"bottom","y":[1.0,23.2]}]}};
-/* o: {src:'30'|'70', x0,x1,h0,h1: 初效濾網 frame rect, back: d of the back face (filters stack toward -d), carbon: include 甲醛濾網} -> outermost d */
+/* o: {src:'30'|'70', x0,x1,h0,h1: 初效濾網 frame rect, back: d the filters stack from (toward -d), carbon: include 甲醛濾網,
+        fold3: 三折式 (both filters), inBox: {x0} filters sit inside a return box and slide out through a slot in its end face at x0} -> outermost d */
 F.filterSet=function(K,o){
-  const R=F.FILTER_RULES[o.src||'70'],m=K.mat,D=y=>o.back-y,W=o.x1-o.x0,Hh=o.h1-o.h0;let tip=o.back;
-  R.rails.forEach(r=>{const ref=r.ref==='top'?o.h1:o.h0;K.box(o.x0+r.x[0],o.x1+r.x[1],ref+r.z[0],ref+r.z[1],D(r.y[1]),D(r.y[0]),m.body2);tip=Math.min(tip,D(r.y[1]));});
-  if(o.carbon){const c=R.carbon,cx0=o.x0+c.dx[0],cx1=o.x1+c.dx[1],cz0=o.h0+c.dz[0],cz1=o.h1+c.dz[1],dF=D(c.y[1]);
-   const cg=K.group(()=>{
-    K.pleatPanel(cx0,cx1,cz0,cz1,dF,D(c.y[0]),c.pitch);
-    c.tabs.forEach(t=>{if(t.side==='x'){const zc=cz0+t.zc*(cz1-cz0);K.box(cx0-t.out,cx0,zc-t.size/2,zc+t.size/2,dF,dF+t.t,m.carbonTab);}
-      /* bottom tab hidden (user request): it would hang below the rails */});});
-   const cd=[dF,D(c.y[0])],parts=[{x0:cx0,h0:cz0,h1:cz1,d0:cd[0],d1:cd[1]}];
-   c.tabs.filter(t=>t.side==='x').forEach(t=>{const zc=cz0+t.zc*(cz1-cz0);parts.push({x0:cx0-t.out,h0:zc-t.size/2,h1:zc+t.size/2,d0:cd[0],d1:cd[1]});});
-   K.movers.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36,parts});}
-  const f=R.frame,dm=D((f.y[0]+f.y[1])/2),la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4,ld=(R.loopDepth||7.5)/2+2;
-  const straps=()=>R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});
-  if(o.fold3){
-    /* 三折式初效濾網 (130–300 L): three equal hinged panels; the leading panel (pull side, -x) carries the strap.
-       Hinges are vertical lines at x0+W/3 and x0+2W/3; panels fold outward (away from the back face). */
-    const T3=window.THREE,s3=W/3,xa=o.x0+s3,xb=o.x0+2*s3;let p1,p2;
-    const pg=K.group(()=>{K.group(()=>K.filterFrame(xb,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh));
-      p2=K.group(()=>K.filterFrame(xa,xb,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh));
-      p1=K.group(()=>{K.filterFrame(o.x0,xa,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);straps();});
-      [xa,xb].forEach(x=>[0.2,0.8].forEach(q=>K.rod('y',K.FRAME_ROD+0.6,x,o.h0+q*Hh,dm,16,m.inox,12)));});   // hinge knuckles
+  const R=F.FILTER_RULES[o.src||'70'],m=K.mat,D=y=>o.back-y,W=o.x1-o.x0,Hh=o.h1-o.h0,T3=window.THREE;let tip=o.back;
+  const list=[];   // movers, in UI order
+  /* three equal hinged panels; panel(xa,xb,lead) builds one panel; hinges are vertical lines at d=dm; panels fold away from the unit */
+  function trifold(x0,x1,dm,panel,knuckles,geo){
+    const s3=(x1-x0)/3,xa=x0+s3,xb=x0+2*s3;let p1,p2;
+    const g=K.group(()=>{K.group(()=>panel(xb,x1,false));p2=K.group(()=>panel(xa,xb,false));p1=K.group(()=>panel(x0,xa,true));if(knuckles)knuckles(xa,xb);});
     const h2=new T3.Group(),h1=new T3.Group();
-    h2.position.set(K.cx(xb),0,K.cz(dm));pg.add(h2);h2.add(p2);p2.position.set(-K.cx(xb),0,-K.cz(dm));
+    h2.position.set(K.cx(xb),0,K.cz(dm));g.add(h2);h2.add(p2);p2.position.set(-K.cx(xb),0,-K.cz(dm));
     h1.position.set(K.cx(xa)-K.cx(xb),0,0);h2.add(h1);h1.add(p1);p1.position.set(-K.cx(xa),0,-K.cz(dm));
-    K.movers.unshift({name:'初效濾網（三折式）',g:pg,side:2*s3,fold:{step:s3,a1:Math.PI/6,a2:Math.PI/4,h1,h2},hMin:o.h0});
-  }else{
-    const pg=K.group(()=>{K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);straps();});
+    return {g,side:2*s3,fold:Object.assign({step:s3,a1:Math.PI/6,a2:Math.PI/4,h1,h2,x0,dm},geo)};}
+  if(!o.inBox)R.rails.forEach(r=>{const ref=r.ref==='top'?o.h1:o.h0;K.box(o.x0+r.x[0],o.x1+r.x[1],ref+r.z[0],ref+r.z[1],D(r.y[1]),D(r.y[0]),m.body2);tip=Math.min(tip,D(r.y[1]));});
+  let dMin=1e9,dMax=-1e9;
+  if(o.carbon){const c=R.carbon,cx0=o.x0+c.dx[0],cx1=o.x1+c.dx[1],cz0=o.h0+c.dz[0],cz1=o.h1+c.dz[1],dF=D(c.y[1]),dB=D(c.y[0]),dmc=(dF+dB)/2;
+    dMin=Math.min(dMin,dF-1);dMax=Math.max(dMax,dB);
+    const tabs=()=>c.tabs.forEach(t=>{if(t.side==='x'){const zc=cz0+t.zc*(cz1-cz0);K.box(cx0-t.out,cx0,zc-t.size/2,zc+t.size/2,dF,dF+t.t,m.carbonTab);}});   // bottom tab hidden (user request)
+    if(o.fold3){const tf=trifold(cx0,cx1,dmc,(xa,xb,lead)=>{K.pleatPanel(xa,xb,cz0,cz1,dF,dB,c.pitch);if(lead)tabs();},null,
+        {out:Math.max(0,...c.tabs.filter(t=>t.side==='x').map(t=>t.out)),ht:(dB-dF)/2,y0:cz0,y1:cz1});
+      list.push({name:'甲醛除臭濾網（三折式）',g:tf.g,side:tf.side,fold:tf.fold,hMin:cz0});}
+    else{const cg=K.group(()=>{K.pleatPanel(cx0,cx1,cz0,cz1,dF,dB,c.pitch);tabs();});
+      const parts=[{x0:cx0,h0:cz0,h1:cz1,d0:dF,d1:dB}];
+      c.tabs.filter(t=>t.side==='x').forEach(t=>{const zc=cz0+t.zc*(cz1-cz0);parts.push({x0:cx0-t.out,h0:zc-t.size/2,h1:zc+t.size/2,d0:dF,d1:dB});});
+      list.push({name:'甲醛除臭濾網',g:cg,side:0.5*(cx1-cx0),down:0.5*(cz1-cz0),hMin:cz0-36,parts});}}
+  const f=R.frame,dm=D((f.y[0]+f.y[1])/2),la=(R.loopDepth||7.5)/2+1,wf=K.FRAME_ROD+0.4,ld=(R.loopDepth||7.5)/2+2;
+  dMin=Math.min(dMin,dm-ld);dMax=Math.max(dMax,dm+ld);
+  const straps=()=>R.rings.forEach(g=>{if(g.side==='x')K.strapLoop({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.in,width:g.size,a:la,wf});});
+  const frame=(xa,xb)=>K.filterFrame(xa,xb,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
+  if(o.fold3){const tf=trifold(o.x0,o.x1,dm,(xa,xb,lead)=>{frame(xa,xb);if(lead)straps();},
+      (xa,xb)=>[xa,xb].forEach(x=>[0.2,0.8].forEach(q=>K.rod('y',K.FRAME_ROD+0.6,x,o.h0+q*Hh,dm,16,m.inox,12))),   // hinge knuckles
+      {out:Math.max(0,...R.rings.filter(g=>g.side==='x').map(g=>g.out)),ht:ld,y0:o.h0,y1:o.h1});
+    list.unshift({name:'初效濾網（三折式）',g:tf.g,side:tf.side,fold:tf.fold,hMin:o.h0});}
+  else{const pg=K.group(()=>{frame(o.x0,o.x1);straps();});
     const pparts=[{x0:o.x0,h0:o.h0,h1:o.h1,d0:dm-ld,d1:dm+ld}];
     R.rings.filter(g=>g.side==='x').forEach(g=>{const zc=o.h0+g.zc*Hh;pparts.push({x0:o.x0-g.out,h0:zc-g.size/2,h1:zc+g.size/2,d0:dm-ld,d1:dm+ld});});
-    K.movers.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0,parts:pparts});
-  }
+    list.unshift({name:'初效濾網',g:pg,side:0.5*W,down:0.5*Hh,hMin:o.h0,parts:pparts});}
+  if(o.inBox){   // 回風箱濾網抽取孔: dark slot in the box end face the filters slide through
+    const hs0=Math.min(o.h0,o.carbon?o.h0+R.carbon.dz[0]:o.h0)-3,hs1=o.h1+3;
+    K.box(o.inBox.x0-0.8,o.inBox.x0+0.2,hs0,hs1,dMin-2,dMax+2,m.hole);
+    const bx=o.inBox;K.obstacles.push({x0:bx.x0,x1:bx.x1,h0:bx.h0,h1:bx.h1,d0:bx.d0,d1:bx.d1,slot:[dMin-2,dMax+2]});   // the box itself: only the slot band is free
+    list.forEach(mv=>mv.name='回風箱'+mv.name);}
+  list.forEach(mv=>K.movers.push(mv));
   return Math.min(tip,D(f.y[1]));
+};
+/* filters inside a return box (x0..x1, h0..h1, d0..d1 = box extents; pull side = x0). Same filters as natural return for that model. */
+F.boxFilters=function(K,b,o){
+  const R=F.FILTER_RULES[o.src||'70'],ext=o.carbon?Math.max(0,-R.carbon.dx[0]):0;
+  const dIn=b.d1-b.d0;let back=b.d0+dIn*0.5+11;   // filter pack centred in the box depth…
+  K.obstacles.forEach(ob=>{if(!ob.slot&&ob.x1<=b.x0+1&&ob.h1>b.h0&&ob.h0<b.h1&&ob.d0<b.d1&&ob.d1>b.d0)back=Math.min(back,ob.d0-2);});   // …moved away from anything in the pull path (drain head)
+  back=Math.max(back,b.d0+26);
+  F.filterSet(K,{src:o.src,x0:b.x0+ext,x1:b.x1-10,h0:b.h0+14,h1:b.h1-14,back,carbon:o.carbon,fold3:o.fold3,inBox:b});
 };
 /* 機殼頂部三角凸筋 (5 mm): two ridges along the length at ~27 % and ~57 % of the body depth from the back face */
 F.topRidges=function(K,x0,x1,d0,d1,H,w){const D=d1-d0,hw=(w||12)/2;[0.27,0.57].forEach(f=>K.ridge(x0,x1,d0+f*D-hw,d0+f*D+hw,H,5,K.mat.body));};
@@ -155,9 +175,10 @@ F.C=function(K,P,v){
   let fTip=B.d0;
   if(rid==='r0'){   // 只有初效濾網：依該機型回風口尺寸，構造比照 MD-70LB 3dm
     const f=P.filter,fr={x0:f.x0+6,x1:f.x1-6,h0:Math.max(f.h0,48),h1:Math.min(f.h1,H-30)};
-    fTip=F.filterSet(K,{src:'70',x0:fr.x0,x1:fr.x1,h0:fr.h0,h1:fr.h1,back:B.d0,carbon:false,fold3:true});   // 三折式
+    fTip=F.filterSet(K,{src:'70',x0:fr.x0,x1:fr.x1,h0:fr.h0,h1:fr.h1,back:B.d0,carbon:false,fold3:P.id!=='MD-130LB'});   // 三折式（MD-130LB 為單層）
     K.tag((fr.x0+fr.x1)/2,fr.h1+40,fTip,[0,0,-1],'RA','自然回・初效濾網（側拉／下拉）');}
   else{const R=P.ret;K.box(R.x0,R.x1,R.h0,R.h1,R.d0,B.d0,m.body2,4);
+    F.boxFilters(K,{x0:R.x0,x1:R.x1,h0:R.h0,h1:R.h1,d0:R.d0,d1:B.d0},{src:'70',carbon:false,fold3:P.id!=='MD-130LB'});
     R.x.forEach(x=>K.stadium({x,h:R.h,d:R.d0,dir:-1,w:R.w,hh:R.hh,len:R.len,t:3,plate:R.plate,m:m.plastic}));
     K.tag((R.x[0]+R.x[R.x.length-1])/2,R.h+R.hh/2+30,R.d0-R.len,[0,0,-1],'RA',P.retName);
     if(P.topFilter)K.box(P.topFilter[0],P.topFilter[1],H,H+3,P.topFilter[2],P.topFilter[3],m.body2);}

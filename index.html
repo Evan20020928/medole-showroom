@@ -63,6 +63,17 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);overflow:hid
 .kpis b{font:500 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
 .kpis b small{font-size:12px;color:var(--muted);margin-left:3px}
 .kpis span{font:400 11px/1 var(--f-body);letter-spacing:.08em;color:var(--muted)}
+.kpi-ef{all:unset;display:flex;flex-direction:column;gap:4px;cursor:pointer;pointer-events:auto;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+.kpi-ef:hover,.kpi-ef[aria-expanded="true"]{background:var(--chip)}
+.kpi-ef:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kpi-ef i{font-style:normal;color:var(--accent)}
+.efpop{pointer-events:auto;margin-top:10px;max-width:340px;background:var(--panel-solid);border:1px solid var(--line);border-radius:10px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.12);font-size:13px;line-height:1.5}
+.efpop[hidden]{display:none}
+.efpop b{font-weight:700}
+.efpop p{margin:4px 0 0;color:var(--fg)}
+.efpop code{display:block;margin-top:8px;font:600 13px/1.4 var(--f-mono);background:var(--chip);border-radius:6px;padding:6px 8px;color:var(--accent)}
+.efpop .ef-note{font-size:11.5px;color:var(--muted)}
+.efpop .ef-calc{margin-top:8px}
 
 .sheet{position:absolute;top:max(16px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));width:320px;
   background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -235,6 +246,7 @@ html.solo .modelbtn{display:none}
     <div class="eyebrow" id="eyebrow">米多力・吊隱式風管除濕機</div>
     <h1 class="model" id="modelName">MD</h1>
     <div class="kpis" id="kpis"></div>
+    <div class="efpop" id="efPop" hidden role="dialog" aria-label="能源因數算法"></div>
     <div class="headbtns">
       <button type="button" class="modelbtn" id="modelBtn" hidden aria-haspopup="dialog" aria-controls="picker">
         <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor"/></svg>
@@ -259,7 +271,7 @@ html.solo .modelbtn{display:none}
       <section class="sec" id="pullBox" hidden>
         <h3>濾網抽取 <output>互動</output></h3>
         <div class="chips" id="pullRows"></div>
-        <p class="pullhint">按「側拉」會把濾網從側邊抽出約一半，並轉到回風側方便觀看。</p>
+        <p class="pullhint">按「側拉」會把濾網從側邊抽出，並轉到回風側方便觀看；三折式濾網會邊抽邊折（30°、45°）。接回風箱時，濾網從回風箱側面的抽取孔抽出。</p>
       </section>
       <section class="sec share" id="shareBox" hidden>
         <h3>分享此型號</h3>
