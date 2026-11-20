@@ -142,8 +142,12 @@ function makeKit(group,center){
     torus(axis,R,t,x,h,d,m){const o=new T.Mesh(new T.TorusGeometry(R,t,10,72),m);if(axis==='x')o.rotation.y=PI/2;else if(axis==='y')o.rotation.x=PI/2;o.position.set(CX(x),h,CZ(d));return add(o);},
     /* lathe profile [[r,s]...] along axis 'z'|'x' with dir ±1 from plan point */
     /* 圓頭螺絲: domed head sitting on a face at depth d, facing dir (±1 along d); body colour so it follows the unit finish */
-    screw(x,h,d,dir,r){const R=r||4.5,Hh=R*0.55;
-      return K.lathe('z',dir||1,x,h,d,[[R,0],[R,Hh*0.12],[R*0.93,Hh*0.4],[R*0.75,Hh*0.72],[R*0.45,Hh*0.93],[0.01,Hh]],mat.body,28);},
+    screw(x,h,d,dir,r,m){const R=r||4.5,Hh=R*0.55;
+      return K.lathe('z',dir||1,x,h,d,[[R,0],[R,Hh*0.12],[R*0.93,Hh*0.4],[R*0.75,Hh*0.72],[R*0.45,Hh*0.93],[0.01,Hh]],m||mat.body,28);},
+    /* 機殼頂部三角凸筋: triangular ridge along x on a top surface at height h, base d0..d1, peak height ht */
+    ridge(x0,x1,d0,d1,h,ht,m){const w=(d1-d0)/2,s=new T.Shape();s.moveTo(-w,0);s.lineTo(w,0);s.lineTo(0.6,ht);s.lineTo(-0.6,ht);s.lineTo(-w,0);
+      const o=add(shade(new T.Mesh(new T.ExtrudeGeometry(s,{depth:x1-x0,bevelEnabled:false}),m||mat.body)));
+      o.rotation.y=PI/2;o.position.set(CX(x0),h,CZ((d0+d1)/2));return o;},
     lathe(axis,dir,x,h,d,prof,m,seg){
       const o=shade(new T.Mesh(new T.LatheGeometry(prof.map(p=>new T.Vector2(p[0],p[1])),seg||72),m));
       if(axis==='z')o.rotation.x=dir>0?PI/2:-PI/2;else if(axis==='x')o.rotation.z=dir>0?-PI/2:PI/2;else if(dir<0)o.rotation.x=PI;
@@ -176,7 +180,7 @@ function makeKit(group,center){
       s.lineTo(x0+rad,-y0);s.quadraticCurveTo(x0,-y0,x0,-y0-rad);s.lineTo(x0,y0+rad);s.quadraticCurveTo(x0,y0,x0+rad,y0);
       const pg=new T.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:12});
       const pm=add(shade(new T.Mesh(pg,o.m||mat.plastic)));pm.position.set(CX(o.x),o.hPlate,CZ(o.d));if(dir<0)pm.rotation.y=PI;
-      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-14),o.hPlate+b*(ph/2-14),o.d+dir*t,dir,4.5));
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-14),o.hPlate+b*(ph/2-14),o.d+dir*t,dir,4.5,o.m||mat.plastic));   // black, like the flange
       const dP=o.d+dir*t,dC=dP+dir*o.cone,N=96,Rn=7,pos=[],idx=[];
       for(let j=0;j<=Rn;j++){const tt=j/Rn,e=tt*tt*(3-2*tt),z=CZ(dP+(dC-dP)*tt),cy=o.hPlate+(o.h-o.hPlate)*e;
         for(let i=0;i<=N;i++){const th=i/N*2*PI,c=Math.cos(th),sn=Math.sin(th),p=2/5,a=pw/2-10,bb=ph/2-10;
@@ -198,7 +202,7 @@ function makeKit(group,center){
         s.moveTo(-pw/2+r,-ph/2);s.lineTo(pw/2-r,-ph/2);s.quadraticCurveTo(pw/2,-ph/2,pw/2,-ph/2+r);s.lineTo(pw/2,ph/2-r);s.quadraticCurveTo(pw/2,ph/2,pw/2-r,ph/2);
         s.lineTo(-pw/2+r,ph/2);s.quadraticCurveTo(-pw/2,ph/2,-pw/2,ph/2-r);s.lineTo(-pw/2,-ph/2+r);s.quadraticCurveTo(-pw/2,-ph/2,-pw/2+r,-ph/2);
         s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:pt,bevelEnabled:false,curveSegments:16}),o.d);s0=pt;
-        [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-10),o.h+b*(ph/2-10),o.d+dir*pt,dir,4));}
+        [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-10),o.h+b*(ph/2-10),o.d+dir*pt,dir,4,m));}
       if(o.len>s0){const s=shp(w,hh);s.holes.push(pth(w-2*t,hh-2*t));place(new T.ExtrudeGeometry(s,{depth:o.len-s0,bevelEnabled:false,curveSegments:20}),o.d+dir*s0);}
       let backD=o.d+dir*Math.min(10,o.len*0.3);
       if(o.recess){   // the box behind the flange gets a real stadium opening, lined in black, so the outlet reads hollow down to the unit face

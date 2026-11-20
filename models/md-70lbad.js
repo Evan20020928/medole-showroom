@@ -7,7 +7,7 @@
   build(K){
     const m=K.mat,F=window.MEDOLE_FAMILIES,H=310;
     K.box(45,612,9.5,H,28,561,m.body,4);K.box(51,606,0,9.5,34,555,m.seam);
-    [[188,194],[347,353]].forEach(([a,b])=>K.box(47,610,H,H+3,a,b,m.body2));
+    [[188,194],[347,353]].forEach(([a,b])=>K.ridge(47,610,a-3,b+3,H,5,m.body));
     /* end rails with hanger holes (622 × 435) */
     [[0,45],[612,657]].forEach(([x0,x1])=>{K.box(x0,x1,40,43,28,510,m.body);K.box(x0<45?42:612,x0<45?45:615,43,72,28,510,m.body);});
     [20,637].forEach(x=>[54,486].forEach(d=>K.hole(x,d,43,7)));

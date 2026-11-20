@@ -10,7 +10,7 @@ F.A=function(K,P,v){
   K.box(0,L,P.base,H,0,D,m.body,4);
   K.box(4,L-4,0,P.base,4,D-4,m.seam);
   K.box(0,L,P.base,P.base+1.5,P.body.seam-1,P.body.seam+1,m.seam);           // front lower panel seam
-  P.ribs.forEach(([d0,d1])=>K.box(2,L-2,H,H+3,d0,d1,m.body2));               // top lid stiffening ribs
+  P.ribs.forEach(([d0,d1])=>K.ridge(2,L-2,d0,d1,H,5,m.body));               // top lid stiffening ribs
   /* control box, gland, lamp */
   const C=P.ctrl;K.box(C.x0,C.x1,P.base,H,C.d0,C.d1,m.body2,3);
   K.box(C.gx0,C.x0,C.gh0,C.gh1,C.d0,C.gd1,m.body);
