@@ -44,10 +44,9 @@ F.A=function(K,P,v){
   const rid=v.ret?v.ret.id:'r0';let rTip,rTag;
   const RB=P.ret;
   if(rid==='r0'){
-    const Fi=P.filter;K.box(Fi.x0,Fi.x1,Fi.h0,Fi.h1,Fi.d0,0,m.body2);
-    K.box(Fi.x0+10,Fi.x1-10,Fi.h0+10,Fi.h1-10,Fi.d0-0.6,Fi.d0+1,m.seam);
-    rTip=Fi.d0;rTag=[(Fi.x0+Fi.x1)/2,Fi.h1+30];
-    K.tag(rTag[0],rTag[1],rTip,[0,0,-1],'RA','自然回風・濾網');
+    const Fi=P.filter;rTip=F.filterSet(K,{src:Fi.src,x0:Fi.x0,x1:Fi.x1,h0:Fi.h0,h1:Fi.h1,back:0,carbon:true});
+    rTag=[(Fi.x0+Fi.x1)/2,Fi.h1+34];
+    K.tag(rTag[0],rTag[1],rTip,[0,0,-1],'RA','自然回・甲醛＋初效濾網（側拉／下拉）');
   }else{
     const R=RB[rid];K.box(R.box[0],R.box[1],RB.h[0],RB.h[1],R.d0,0,m.body2,4);
     if(R.oval){const o=R.oval;K.ovalDuct({x:o.x,d:R.d0,dir:-1,hPlate:RB.hc,h:RB.hc,plateW:o.pw,plateH:148,plateT:o.t,cone:o.cone,od:193,len:o.len});
@@ -77,7 +76,26 @@ F.ears=function(K,o){const m=K.mat;o.d.forEach(d=>{K.bracket(o.faceL,o.tipL,d,o.
 F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>{
   K.box(o.xL[0],o.xL[1],0,t,d-o.w/2,d+o.w/2,m.body2);K.box(o.xR[0],o.xR[1],0,t,d-o.w/2,d+o.w/2,m.body2);
   o.slot.forEach(x=>{K.box(x-6,x+6,t-0.5,t+0.6,d-14,d+14,m.hole);});});};
-/* natural-return filter frame on the back face (d1 = body back face) */
+/* natural-return filters, built from the user's Rhino models (MD-30LB / MD-70LB 單出自然回.3dm, tools/filter_rules.py).
+   Rules are mm offsets from the 初效濾網 frame rect and from the unit's back face (y = distance behind the back face).
+   From the back face outward: 甲醛濾網 (pleated, optional) → 初效濾網 (black frame + diamond wire mesh), held by top/bottom rails.
+   Each filter has a side pull (側拉) and a bottom pull (下拉): thin tabs on the 甲醛濾網, U-shaped wire rings on the 初效濾網. */
+F.FILTER_RULES={"30":{"frame":{"y":[16.19999999999999,19.80000000000001],"border":8,"r":8},"mesh":{"px":7.07,"pz":3.06,"wire":3.06},"rings":[{"side":"x","out":19.3,"in":11.0,"zc":0.515,"size":35.0},{"side":"z","out":19.3,"in":11.1,"xc":0.465,"size":35.0}],"carbon":{"dx":[-39.0,3.0],"dz":[-3.0,0.0],"y":[2.0,12.0],"pitch":6.0,"tabs":[{"side":"x","out":30.0,"zc":0.497,"size":15.0,"t":1.0},{"side":"z","out":30.0,"xc":0.509,"size":15.0,"t":1.0}]},"rails":[{"x":[-10.0,-25.0],"z":[-16.0,4.0],"ref":"top","y":[15.0,23.0]},{"x":[-26.0,-11.0],"z":[-16.0,4.0],"ref":"top","y":[0.0,15.0]},{"x":[-27.0,-10.0],"z":[-6.0,4.0],"ref":"bottom","y":[0.0,22.2]}]},"70":{"frame":{"y":[16.19999999999999,19.80000000000001],"border":8,"r":8},"mesh":{"px":10.02,"pz":3.9,"wire":3.89},"rings":[{"side":"z","out":24.5,"in":14.0,"xc":0.465,"size":49.6},{"side":"x","out":27.4,"in":15.6,"zc":0.515,"size":44.4}],"carbon":{"dx":[4.0,-4.7],"dz":[4.9,-0.7],"y":[5.0,13.0],"pitch":7.48,"tabs":[{"side":"z","out":36.3,"xc":0.509,"size":18.7,"t":0.8},{"side":"x","out":37.4,"zc":0.497,"size":18.2,"t":0.8}]},"rails":[{"x":[17.8,-20.8],"z":[-7.7,12.3],"ref":"top","y":[14.0,22.0]},{"x":[0.2,2.7],"z":[2.3,22.3],"ref":"top","y":[1.0,16.0]},{"x":[16.7,-19.4],"z":[-2.5,7.5],"ref":"bottom","y":[1.0,23.2]}]}};
+/* o: {src:'30'|'70', x0,x1,h0,h1: 初效濾網 frame rect, back: d of the back face (filters stack toward -d), carbon: include 甲醛濾網} -> outermost d */
+F.filterSet=function(K,o){
+  const R=F.FILTER_RULES[o.src||'70'],m=K.mat,D=y=>o.back-y,W=o.x1-o.x0,Hh=o.h1-o.h0;let tip=o.back;
+  R.rails.forEach(r=>{const ref=r.ref==='top'?o.h1:o.h0;K.box(o.x0+r.x[0],o.x1+r.x[1],ref+r.z[0],ref+r.z[1],D(r.y[1]),D(r.y[0]),m.body2);tip=Math.min(tip,D(r.y[1]));});
+  if(o.carbon){const c=R.carbon,cx0=o.x0+c.dx[0],cx1=o.x1+c.dx[1],cz0=o.h0+c.dz[0],cz1=o.h1+c.dz[1],dF=D(c.y[1]);
+    K.pleatPanel(cx0,cx1,cz0,cz1,dF,D(c.y[0]),c.pitch);
+    c.tabs.forEach(t=>{if(t.side==='x'){const zc=cz0+t.zc*(cz1-cz0);K.box(cx0-t.out,cx0,zc-t.size/2,zc+t.size/2,dF,dF+t.t,m.carbonTab);}
+      else{const xc=cx0+t.xc*(cx1-cx0);K.box(xc-t.size/2,xc+t.size/2,cz0-t.out,cz0,dF,dF+t.t,m.carbonTab);}});}
+  const f=R.frame;K.filterFrame(o.x0,o.x1,o.h0,o.h1,D(f.y[1]),D(f.y[0]),f.border,f.r,R.mesh);
+  const dm=D((f.y[0]+f.y[1])/2);
+  R.rings.forEach(g=>{if(g.side==='x')K.uring({axis:'x',at:o.x0,c:o.h0+g.zc*Hh,d:dm,out:g.out,inn:g.inn!=null?g.inn:g.in,size:g.size});
+    else K.uring({axis:'z',at:o.h0,c:o.x0+g.xc*W,d:dm,out:g.out,inn:g.in,size:g.size});});
+  return Math.min(tip,D(f.y[1]));
+};
+/* legacy plain filter box (kept for reference) */
 F.filter=function(K,o){const m=K.mat;K.box(o.x0,o.x1,o.h0,o.h1,o.d0,o.d1,m.body2);K.box(o.x0+10,o.x1-10,o.h0+10,o.h1-10,o.d0-0.6,o.d0+1,m.seam);};
 /* drain head: axis 'z' (back face, dir -1) or 'x' (left end, dir -1) */
 F.drain=function(K,o){const m=K.mat,len=o.len||26;
@@ -111,7 +129,11 @@ F.C=function(K,P,v){
   K.tag(sx,sTop+30,sTip,[0,0,1],'SA',P.supplyName);
   /* return side */
   const rid=v.ret?v.ret.id:(P.ret?'rb':'r0');
-  if(rid==='r0'){F.filter(K,P.filter);K.tag((P.filter.x0+P.filter.x1)/2,P.filter.h1+28,P.filter.d0,[0,0,-1],'RA','自然回風・濾網');}
+  let fTip=B.d0;
+  if(rid==='r0'){   // 只有初效濾網：依該機型回風口尺寸，構造比照 MD-70LB 3dm
+    const f=P.filter,fr={x0:f.x0+6,x1:f.x1-6,h0:Math.max(f.h0,48),h1:Math.min(f.h1,H-30)};
+    fTip=F.filterSet(K,{src:'70',x0:fr.x0,x1:fr.x1,h0:fr.h0,h1:fr.h1,back:B.d0,carbon:false});
+    K.tag((fr.x0+fr.x1)/2,fr.h1+40,fTip,[0,0,-1],'RA','自然回・初效濾網（側拉／下拉）');}
   else{const R=P.ret;K.box(R.x0,R.x1,R.h0,R.h1,R.d0,B.d0,m.body2,4);
     R.x.forEach(x=>K.stadium({x,h:R.h,d:R.d0,dir:-1,w:R.w,hh:R.hh,len:R.len,t:3,plate:R.plate,m:m.plastic}));
     K.tag((R.x[0]+R.x[R.x.length-1])/2,R.h+R.hh/2+30,R.d0-R.len,[0,0,-1],'RA',P.retName);
@@ -123,7 +145,7 @@ F.C=function(K,P,v){
   if(P.screws)F.screws(K,P.screws,B.d1);
   K.nameplate(P.plate.x,P.plate.h,B.d1+0.8,150,40,'z+',P.id,P.plate.sub);
   /* dims */
-  const dB=rid==='r0'?P.filter.d0:P.ret.d0-P.ret.len;
+  const dB=rid==='r0'?fTip:P.ret.d0-P.ret.len;
   K.dim([0,0,sTip],[P.L,0,sTip],[0,0,90],String(P.dimL));
   K.dim([P.L,0,dB],[P.L,0,sTip],[90,0,0],String(P.dimD&&rid!=='r0'?P.dimD:Math.round(sTip-dB)));
   K.dim([B.x0,0,B.d1],[B.x0,H,B.d1],[0,0,150],String(H));

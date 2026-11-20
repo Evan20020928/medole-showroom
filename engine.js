@@ -40,6 +40,13 @@ function canvasTex(w,h,draw,srgb){const c=document.createElement('canvas');c.wid
   const t=new T.CanvasTexture(c);if(srgb!==false)t.encoding=T.sRGBEncoding;t.anisotropy=8;return t;}
 
 const lin=c=>(c&&c.convertSRGBToLinear?c.convertSRGBToLinear():c);   // sRGB hex -> linear
+/* filter textures: diamond wire mesh (alpha mask) for 初效濾網, pleat shading for 甲醛濾網 */
+const meshTex=canvasTex(64,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='#ffffff';g.lineWidth=10;g.lineJoin='round';g.beginPath();g.moveTo(0,h/2);g.lineTo(w/2,0);g.lineTo(w,h/2);g.lineTo(w/2,h);g.closePath();g.stroke();},false);
+meshTex.wrapS=meshTex.wrapT=T.RepeatWrapping;
+const pleatTex=canvasTex(32,32,(g,w,h)=>{const gr=g.createLinearGradient(0,0,w,0);gr.addColorStop(0,'#8c8c8c');gr.addColorStop(.5,'#6e6e6e');gr.addColorStop(.52,'#585858');gr.addColorStop(1,'#7a7a7a');
+  g.fillStyle=gr;g.fillRect(0,0,w,h);g.fillStyle='rgba(0,0,0,.18)';g.fillRect(0,h-3,w,3);});
+pleatTex.wrapS=pleatTex.wrapT=T.RepeatWrapping;
+function texClone(base,rx,ry){const m=base.clone?base.clone():base;if(base.map&&base.map.clone){m.map=base.map.clone();m.map.needsUpdate=true;}if(m.map&&m.map.repeat)m.map.repeat.set(rx,ry);return m;}
 /* ---------- materials ---------- */
 /* colours are sRGB hex taken from product photos (converted to linear in applyFinish); smooth powder coat, no texture */
 const FINISH={
@@ -63,7 +70,12 @@ const mat={
   plinth:new T.MeshStandardMaterial({color:0xd9dfe0,metalness:.15,roughness:.35}),
   disc:new T.MeshStandardMaterial({color:0xeef2f2,metalness:.1,roughness:.22}),
   tick:new T.MeshStandardMaterial({color:0x9aa6a8,roughness:.6}),
-  led:new T.MeshStandardMaterial({color:0x000000,emissive:0x2fb3b6,emissiveIntensity:2.2,roughness:.4})
+  led:new T.MeshStandardMaterial({color:0x000000,emissive:0x2fb3b6,emissiveIntensity:2.2,roughness:.4}),
+  frame:new T.MeshStandardMaterial({color:lin(new T.Color(0x171717)),metalness:.4,roughness:.45}),            // 初效濾網框（黑色金屬）
+  wire:new T.MeshStandardMaterial({color:lin(new T.Color(0x464646)),map:meshTex,transparent:true,alphaTest:.02,depthWrite:false,metalness:.35,roughness:.55,side:T.DoubleSide}),   // blended so far-away mesh averages to grey instead of moiré   // 網線
+  ring:new T.MeshStandardMaterial({color:lin(new T.Color(0x3a3a3a)),metalness:.6,roughness:.35}),            // 拉環
+  carbon:new T.MeshStandardMaterial({color:0xffffff,map:pleatTex,metalness:0,roughness:.85}),                 // 甲醛濾網（灰 105）
+  carbonTab:new T.MeshStandardMaterial({color:lin(new T.Color(0x696969)),metalness:0,roughness:.8,side:T.DoubleSide})
 };
 function applyFinish(name){
   const f=FINISH[name]||FINISH.black;
@@ -196,6 +208,27 @@ function makeKit(group,center){
       K.box(Math.min(tip,tip-s*t),Math.max(tip,tip-s*t),h-12,h,d-w/2,d+w/2,m);
     },
     hole(x,d,h,r){K.torus('y',r+5,3.2,x,h+1,d,mat.rubber);K.rod('y',r,x,h-1.5,d,4,mat.hole,20);},
+    /* 初效濾網: black frame (rounded outer corners, border b) between depths dA<dB, diamond wire mesh in the opening */
+    filterFrame(x0,x1,h0,h1,dA,dB,b,r,mesh){
+      const W=x1-x0,Hh=h1-h0,hx=W/2,hy=Hh/2,rr=Math.min(r,W/4,Hh/4),s=new T.Shape();
+      s.moveTo(-hx+rr,-hy);s.lineTo(hx-rr,-hy);s.quadraticCurveTo(hx,-hy,hx,-hy+rr);s.lineTo(hx,hy-rr);s.quadraticCurveTo(hx,hy,hx-rr,hy);
+      s.lineTo(-hx+rr,hy);s.quadraticCurveTo(-hx,hy,-hx,hy-rr);s.lineTo(-hx,-hy+rr);s.quadraticCurveTo(-hx,-hy,-hx+rr,-hy);
+      const ix=hx-b,iy=hy-b,ho=new T.Path();ho.moveTo(-ix,-iy);ho.lineTo(-ix,iy);ho.lineTo(ix,iy);ho.lineTo(ix,-iy);ho.lineTo(-ix,-iy);s.holes.push(ho);
+      const fm=add(shade(new T.Mesh(new T.ExtrudeGeometry(s,{depth:dB-dA,bevelEnabled:false,curveSegments:6}),mat.frame)));fm.position.set(CX((x0+x1)/2),(h0+h1)/2,CZ(dA));
+      const pl=add(new T.Mesh(new T.PlaneGeometry(2*ix,2*iy),texClone(mat.wire,2*ix/mesh.px,2*iy/mesh.pz)));pl.position.set(CX((x0+x1)/2),(h0+h1)/2,CZ((dA+dB)/2));pl.castShadow=true;
+      return fm;},
+    /* 甲醛濾網: pleated panel, pitch = pleat width */
+    pleatPanel(x0,x1,h0,h1,dA,dB,pitch){return K.box(x0,x1,h0,h1,dA,dB,texClone(mat.carbon,(x1-x0)/pitch,(h1-h0)/4));},
+    /* U-shaped wire pull ring in a plane of constant d. axis 'x': ring on a vertical edge at x=at (outward = -x), centred at h=c;
+       axis 'z': ring on the bottom edge at h=at (outward = -h), centred at x=c. inn = reach inside the edge, out = reach outside, size = width across. */
+    uring(o){
+      const r=o.r||1.8,a=o.size/2-r,ui=o.inn-r,U=Math.min(-(o.out-r)+a,ui-1),P=[];
+      for(let i=0;i<=4;i++)P.push([ui+(U-ui)*i/4,-a]);
+      for(let i=1;i<24;i++){const t=-PI/2-PI*i/24;P.push([U+a*Math.cos(t),a*Math.sin(t)]);}
+      for(let i=0;i<=4;i++)P.push([U+(ui-U)*i/4,a]);
+      const pts=P.map(([u,v])=>o.axis==='x'?new T.Vector3(CX(o.at+u),o.c+v,CZ(o.d)):new T.Vector3(CX(o.c+v),o.at+u,CZ(o.d)));
+      const tg=new T.TubeGeometry(new T.CatmullRomCurve3(pts,false,'centripetal'),72,r,8,false);
+      return add(shade(new T.Mesh(tg,mat.ring)));},
     nameplate(x,h,d,w,hh,dir,title,sub){
       const tex=canvasTex(1024,232,(g,W,H)=>{g.fillStyle='#f6f8f8';g.fillRect(0,0,W,H);g.fillStyle='#0e6f78';g.fillRect(0,0,22,H);
         g.fillStyle='#132022';g.font='800 100px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(title,62,H*0.42);
@@ -265,19 +298,24 @@ function getCss(v){return getComputedStyle(document.documentElement).getProperty
 /* ---------- variants ---------- */
 /* two kinds: supply×return chips (s1-r4), or per-port options (variants.ports + variants.opts, key = one opt id per port, e.g. "8-66-8-4444") */
 function variantKeys(def){if(!def||!def.variants)return [];const V=def.variants;if(V.fixed)return [];
-  if(V.ports)return V.ports.reduce((acc)=>acc.flatMap(k=>V.opts.map(o=>k?k+'-'+o.id:o.id)),['']);
+  if(V.ports)return V.ports.reduce((acc,p)=>acc.flatMap(k=>portOpts(V,p).map(o=>k?k+'-'+o.id:o.id)),['']).filter(k=>portsValid(V,k.split('-')));
   return V.supply.flatMap(s=>V.ret.map(r=>s.id+'-'+r.id));}
+const portOpts=(V,p)=>p.opts||V.opts;
+/* optional V.normalize(parts, changedPortId|null): keeps linked ports consistent; with null it repairs, so a key is valid when repair changes nothing */
+function portsValid(V,parts){return !V.normalize||V.normalize(parts.slice(),null).join('-')===parts.join('-');}
 function parseVariant(def,vkey){
   const V=def.variants;if(!V||V.fixed)return {};
   if(V.ports){let parts=(vkey||'').split('-');
-    if(parts.length!==V.ports.length||parts.some(id=>!V.opts.some(o=>o.id===id)))parts=V.default.split('-');
-    const ports={};V.ports.forEach((p,i)=>ports[p.id]=V.opts.find(o=>o.id===parts[i]));
+    if(parts.length!==V.ports.length||parts.some((id,i)=>!portOpts(V,V.ports[i]).some(o=>o.id===id))||!portsValid(V,parts))parts=V.default.split('-');
+    const ports={};V.ports.forEach((p,i)=>ports[p.id]=portOpts(V,p).find(o=>o.id===parts[i]));
     return {key:parts.join('-'),ports};}
   if(!vkey||variantKeys(def).indexOf(vkey)<0)vkey=V.default;
   const [sid,rid]=vkey.split('-');
   return {key:vkey,supply:V.supply.find(s=>s.id===sid),ret:V.ret.find(r=>r.id===rid)};
 }
-function portSummary(def,v,side){return def.variants.ports.filter(p=>p.side===side).map(p=>v.ports[p.id].name).join('／');}
+function portSummary(def,v,side){const os=def.variants.ports.filter(p=>p.side===side).map(p=>v.ports[p.id]);
+  if(os.every(o=>o.whole&&o.id===os[0].id))return os[0].name;   // one option covering the whole side (e.g. 自然回)
+  return os.map(o=>o.name).join('／');}
 function variantName(def,v){
   if(v&&v.ports)return '出 '+portSummary(def,v,'s')+'・回 '+portSummary(def,v,'r');
   return v&&v.supply?(v.supply.name+v.ret.name):'';}
@@ -286,6 +324,7 @@ function variantName(def,v){
 const target=new T.Vector3();
 const VIEWS={iso:[0.62,1.16],front:[0,1.47],side:[PI/2,1.47],top:[0,0.1]};
 const orbit={th:VIEWS.iso[0],ph:VIEWS.iso[1],r:3,thGoal:VIEWS.iso[0],phGoal:VIEWS.iso[1],rGoal:3,rMin:.5,rMax:20};
+window.__orbit=orbit;   // test hook (screenshots)
 function fitRadius(){const w=canvas.clientWidth||1,a=(camera.aspect||1.6)*Math.max(0.4,1-2*viewOff/w),f=Math.tan(camera.fov*PI/360),need=R_disc*1.18;return Math.max(need/f,need/(f*a))*1.04;}
 function placeCamera(){const sp=Math.sin(orbit.ph);camera.position.set(target.x+orbit.r*sp*Math.sin(orbit.th),target.y+orbit.r*Math.cos(orbit.ph),target.z+orbit.r*sp*Math.cos(orbit.th));camera.lookAt(target);}
 const ptrs=new Map();let pinch0=0,r0=0;
@@ -355,11 +394,12 @@ function renderSheet(id,def,v){
   const chips=(list,cur,kind)=>list.map(o=>'<button type="button" class="chip" data-kind="'+kind+'" data-id="'+o.id+'" aria-pressed="'+(o.id===cur?'true':'false')+'"><b>'+esc(o.name)+'</b><span>'+esc(o.spec)+'</span></button>').join('');
   if(def&&def.variants&&def.variants.ports){
     const V=def.variants;box.hidden=false;if(box.classList)box.classList.toggle('fixed',false);
-    const rows=side=>V.ports.filter(p=>p.side===side).map(p=>'<div class="portlbl">'+esc(p.name)+'</div>'+chips(V.opts,v.ports[p.id].id,p.id)).join('');
+    const rows=side=>V.ports.filter(p=>p.side===side).map(p=>'<div class="portlbl">'+esc(p.name)+'</div>'+chips(portOpts(V,p),v.ports[p.id].id,p.id)).join('');
     $('supplyChips').innerHTML=rows('s');$('returnChips').innerHTML=rows('r');
     $('variantName').textContent=variantName(def,v);
     box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const cur=parseVariant(def,current.v);
-      select(current.id,V.ports.map(p=>p.id===b.dataset.kind?b.dataset.id:cur.ports[p.id].id).join('-'),true);});
+      let parts=V.ports.map(p=>p.id===b.dataset.kind?b.dataset.id:cur.ports[p.id].id);if(V.normalize)parts=V.normalize(parts,b.dataset.kind);
+      select(current.id,parts.join('-'),true);});
     renderShare(id,v);return;
   }
   if(def&&def.variants&&!def.variants.fixed){
