@@ -48,7 +48,7 @@ F.A=function(K,P,v){
     K.tag(rTag[0],rTag[1],rTip,[0,0,-1],'RA','自然回・甲醛＋初效濾網（側拉／下拉）');
   }else{
     const R=RB[rid];K.box(R.box[0],R.box[1],RB.h[0],RB.h[1],R.d0,0,m.body2,4);
-    F.boxFilters(K,{x0:R.box[0],x1:R.box[1],h0:RB.h[0],h1:RB.h[1],d0:R.d0,d1:0},{src:P.filter.src,carbon:true});
+    F.boxFilters(K,{x0:R.box[0],x1:R.box[1],h0:RB.h[0],h1:RB.h[1],d0:R.d0,d1:0},{src:P.filter.src,carbon:true,back:0,nat:P.filter});
     if(R.oval){const o=R.oval;K.ovalDuct({x:o.x,d:R.d0,dir:-1,hPlate:RB.hc,h:RB.hc,plateW:o.pw,plateH:148,plateT:o.t,cone:o.cone,od:193,len:o.len});
       rTip=R.d0-o.t-o.cone-o.len;rTag=[o.x,RB.hc+97+24];}
     else{R.ducts.forEach(([x,od,len])=>K.duct({axis:'z',dir:-1,x,h:RB.hc,d:R.d0,od,len,flare:true,flareR:od>120?12:7}));
@@ -122,17 +122,18 @@ F.filterSet=function(K,o){
     const hs0=Math.min(o.h0,o.carbon?o.h0+R.carbon.dz[0]:o.h0)-3,hs1=o.h1+3;
     K.box(o.inBox.x0-0.8,o.inBox.x0+0.2,hs0,hs1,dMin-2,dMax+2,m.hole);
     const bx=o.inBox;K.obstacles.push({x0:bx.x0,x1:bx.x1,h0:bx.h0,h1:bx.h1,d0:bx.d0,d1:bx.d1,slot:[dMin-2,dMax+2]});   // the box itself: only the slot band is free
-    list.forEach(mv=>mv.name='回風箱'+mv.name);}
+    list.forEach(mv=>{mv.name='回風箱'+mv.name;if(mv.fold)mv.fold.boxX0=o.inBox.x0;});}
   list.forEach(mv=>K.movers.push(mv));
   return Math.min(tip,D(f.y[1]));
 };
-/* filters inside a return box (x0..x1, h0..h1, d0..d1 = box extents; pull side = x0). Same filters as natural return for that model. */
+/* filters when a return box is fitted: same filters at the SAME place as natural return (o.nat rect, against the body back face o.back,
+   in their rails); the box simply covers them, and its end face at b.x0 gets the pull slot lined up with the filters. b = box extents. */
 F.boxFilters=function(K,b,o){
-  const R=F.FILTER_RULES[o.src||'70'],ext=o.carbon?Math.max(0,-R.carbon.dx[0]):0;
-  const dIn=b.d1-b.d0;let back=b.d0+dIn*0.5+11;   // filter pack centred in the box depth…
-  K.obstacles.forEach(ob=>{if(!ob.slot&&ob.x1<=b.x0+1&&ob.h1>b.h0&&ob.h0<b.h1&&ob.d0<b.d1&&ob.d1>b.d0)back=Math.min(back,ob.d0-2);});   // …moved away from anything in the pull path (drain head)
-  back=Math.max(back,b.d0+26);
-  F.filterSet(K,{src:o.src,x0:b.x0+ext,x1:b.x1-10,h0:b.h0+14,h1:b.h1-14,back,carbon:o.carbon,fold3:o.fold3,inBox:b});
+  const n=o.nat||{x0:b.x0,x1:b.x1-10,h0:b.h0+14,h1:b.h1-14};
+  const r={x0:Math.max(n.x0,b.x0),x1:Math.min(n.x1,b.x1-4),h0:Math.max(n.h0,b.h0+4),h1:Math.min(n.h1,b.h1-4)};
+  /* the slot sits above anything in the pull path at the filters' depth (e.g. the drain head), so the filters can come straight out */
+  K.obstacles.forEach(ob=>{if(!ob.slot&&ob.x1<=b.x0+1&&ob.d1>o.back-26&&ob.d0<o.back&&ob.h1>r.h0&&ob.h0<r.h1)r.h0=Math.max(r.h0,ob.h1+3);});
+  F.filterSet(K,{src:o.src,x0:r.x0,x1:r.x1,h0:r.h0,h1:r.h1,back:o.back,carbon:o.carbon,fold3:o.fold3,inBox:b});
 };
 /* 機殼頂部三角凸筋 (5 mm): two ridges along the length at ~27 % and ~57 % of the body depth from the back face */
 F.topRidges=function(K,x0,x1,d0,d1,H,w){const D=d1-d0,hw=(w||12)/2;[0.27,0.57].forEach(f=>K.ridge(x0,x1,d0+f*D-hw,d0+f*D+hw,H,5,K.mat.body));};
@@ -178,7 +179,8 @@ F.C=function(K,P,v){
     fTip=F.filterSet(K,{src:'70',x0:fr.x0,x1:fr.x1,h0:fr.h0,h1:fr.h1,back:B.d0,carbon:false,fold3:P.id!=='MD-130LB'});   // 三折式（MD-130LB 為單層）
     K.tag((fr.x0+fr.x1)/2,fr.h1+40,fTip,[0,0,-1],'RA','自然回・初效濾網（側拉／下拉）');}
   else{const R=P.ret;K.box(R.x0,R.x1,R.h0,R.h1,R.d0,B.d0,m.body2,4);
-    F.boxFilters(K,{x0:R.x0,x1:R.x1,h0:R.h0,h1:R.h1,d0:R.d0,d1:B.d0},{src:'70',carbon:false,fold3:P.id!=='MD-130LB'});
+    {const f=P.filter;F.boxFilters(K,{x0:R.x0,x1:R.x1,h0:R.h0,h1:R.h1,d0:R.d0,d1:B.d0},{src:'70',carbon:false,fold3:P.id!=='MD-130LB',back:B.d0,
+      nat:{x0:f.x0+6,x1:f.x1-6,h0:Math.max(f.h0,48),h1:Math.min(f.h1,H-30)}});}   // same rect as natural return
     R.x.forEach(x=>K.stadium({x,h:R.h,d:R.d0,dir:-1,w:R.w,hh:R.hh,len:R.len,t:3,plate:R.plate,m:m.plastic}));
     K.tag((R.x[0]+R.x[R.x.length-1])/2,R.h+R.hh/2+30,R.d0-R.len,[0,0,-1],'RA',P.retName);
     if(P.topFilter)K.box(P.topFilter[0],P.topFilter[1],H,H+3,P.topFilter[2],P.topFilter[3],m.body2);}

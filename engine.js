@@ -368,7 +368,8 @@ function planFold(f,obs){
     return segHit(h2x,d,h2x+S,d)||segHit(h2x,d,h1[0],h1[1])||segHit(h1[0],h1[1],h1[0]+L*u1[0],h1[1]+L*u1[1]);};
   const slide=(from,max,t1,t2)=>{let s=0;for(let k=1;k<=max;k+=2){if(pose(from+k,t1,t2))break;s=k;}return Math.min(s,max);};
   const turn=(s,max,fix,which)=>{let a=0;const st=max/24;for(let k=1;k<=24;k++){const v=st*k;if(which===1?pose(s,v,fix):pose(s,fix,v))break;a=v;}return a;};
-  const s1=slide(0,S,0,0),t1=turn(s1,f.a1,0,1),s2=slide(s1,S,t1,0),t2=turn(s1+s2,f.a2,t1,2);
+  const S1=S+(f.boxX0!=null?Math.max(0,f.x0-f.boxX0)+2:0);   // in a return box the first hinge must clear the slot before folding
+  const s1=slide(0,S1,0,0),t1=turn(s1,f.a1,0,1),s2=slide(s1,S,t1,0),t2=turn(s1+s2,f.a2,t1,2);
   return {s1,t1,s2,t2};
 }
 function renderPull(){

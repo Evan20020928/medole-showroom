@@ -57,7 +57,7 @@ const RET=OPTS.concat([{id:'f',name:'自然回',spec:'甲醛+初效',whole:true}
     const nat=v.ports.ra.id==='f';let ra,rb;
     if(nat){const fr={x0:292,x1:1026,h0:67,h1:286};const t=F.filterSet(K,Object.assign({src:'70',back:B.d0,carbon:true,fold3:true},fr));   // 三折式
       ra=rb={tip:t,top:fr.h1+10};}
-    else{K.box(290,1031,79,325,95,B.d0,m.body2,4);F.boxFilters(K,{x0:290,x1:1031,h0:79,h1:325,d0:95,d1:B.d0},{src:'70',carbon:true,fold3:true});ra=port('r',482.9,v.ports.ra.id);rb=port('r',837.5,v.ports.rb.id);}
+    else{K.box(290,1031,79,325,95,B.d0,m.body2,4);F.boxFilters(K,{x0:290,x1:1031,h0:79,h1:325,d0:95,d1:B.d0},{src:'70',carbon:true,fold3:true,back:B.d0,nat:{x0:292,x1:1026,h0:67,h1:286}});ra=port('r',482.9,v.ports.ra.id);rb=port('r',837.5,v.ports.rb.id);}
     /* supply ports A/B */
     const sa=port('s',449.6,v.ports.sa.id),sb=port('s',859.7,v.ports.sb.id);
     F.screws(K,[[619,175],[691,175],[619,74],[691,74]],B.d1);
