@@ -28,12 +28,11 @@
     /* hanger brackets: holes 982 x 250, ear top at h=45.
        Fan-section end: one continuous bracket along the depth with slotted holes (product photo);
        control-box end: two separate ears (the control box fills the middle of that end). */
-    [189,439].forEach(d=>{K.bracket(B.x0,43.8,d,51,45,29);K.hole(70,d,45,6);});
-    {const da=B.d0+6,db=FN.d1-6;K.bracket(B.x1,1072,(da+db)/2,db-da,45,29);
-     [189,439].forEach(d=>K.box(1052-5.5,1052+5.5,41.6,45.5,d-14,d+14,m.hole));}   // 長圓孔
+    [189,439].forEach(d=>K.bracket(B.x0,43.8,d,51,45,29,null,[],[{x:70,d,r:6}]));
+    {const da=B.d0+6,db=FN.d1-6;K.bracket(B.x1,1072,(da+db)/2,db-da,45,29,null,[],[189,439].map(d=>({x:1052,d,r:5.5,len:17})));}   // 長圓孔（實際挖孔）
 
     /* drain head (back face) */
-    K.rod('z',14,130,80,148,28,m.drain,32);K.obstacles.push({x0:116,x1:144,h0:66,h1:94,d0:134,d1:162});K.disc('z',10,130,80,133.7,m.hole);
+    K.pipe('z',-1,130,80,162,14,10,28,m.drain);K.obstacles.push({x0:116,x1:144,h0:66,h1:94,d0:134,d1:162});
 
     /* outlet-face screws + nameplate */
     [330,400].forEach(x=>[78,180].forEach(h=>K.screw(x,h,B.d1,1,5)));

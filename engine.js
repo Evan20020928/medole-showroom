@@ -165,7 +165,8 @@ function makeKit(group,center){
       const at=(s)=>ax==='z'?[o.x,o.h,o.d+dir*s]:[o.x+dir*s,o.h,o.d];
       let s0=0;
       if(o.plate){const pt=o.plateT||3,[pw,ph]=o.plate;
-        if(ax==='z'){const pm=add(shade(new T.Mesh(new T.ExtrudeGeometry(chamferRect(pw,ph,Math.min(12,pw*0.1)),{depth:pt,bevelEnabled:false}),m)));pm.position.set(CX(o.x),o.h,CZ(Math.min(o.d,o.d+dir*pt)));}
+        if(ax==='z'){const pm=add(shade(new T.Mesh(new T.ExtrudeGeometry(chamferRect(pw,ph,Math.min(12,pw*0.1)),{depth:pt,bevelEnabled:false}),m)));pm.position.set(CX(o.x),o.h,CZ(Math.min(o.d,o.d+dir*pt)));
+          const q=Math.min(12,pw*0.1)/2+6;[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(o.x+a*(pw/2-q),o.h+b*(ph/2-q),o.d+dir*pt,dir,3.2,m));}   // 黑色螺絲
         else K.box(Math.min(o.x,o.x+dir*pt),Math.max(o.x,o.x+dir*pt),o.h-ph/2,o.h+ph/2,o.d-pw/2,o.d+pw/2,m);
         s0=pt;}
       const fl=o.flare?Math.min(o.flareLen||16,L*0.35):0,F=R+(o.flareR||12);
@@ -220,7 +221,7 @@ function makeKit(group,center){
     },
     /* hanger bracket: ear at height h (top face), from face x outward to tip, centred on plan d */
     /* flat plate h0..h1 over x0..x1 × d0..d1 with real cut-outs: each notch = round hole (x,d,r) + slot running out to the plate edge in dir */
-    plateCut(x0,x1,d0,d1,h0,h1,notches,m){
+    plateCut(x0,x1,d0,d1,h0,h1,notches,m,inner){
       const E={'-d':[],'+x':[],'+d':[],'-x':[]};(notches||[]).forEach(n=>E[n.dir].push(n));
       const P=[],arc=(cx,cd,r,a0)=>{for(let i=0;i<=16;i++){const a=(a0-180*i/16)*PI/180;P.push([cx+r*Math.cos(a),cd+r*Math.sin(a)]);}};
       // CCW outline in (x,d): -d edge x0→x1, +x edge d0→d1, +d edge x1→x0, -x edge d1→d0
@@ -229,18 +230,25 @@ function makeKit(group,center){
       P.push([x1,d1]);E['+d'].sort((a,b)=>b.x-a.x).forEach(n=>{P.push([n.x+n.r,d1]);arc(n.x,n.d,n.r,0);P.push([n.x-n.r,d1]);});
       P.push([x0,d1]);E['-x'].sort((a,b)=>b.d-a.d).forEach(n=>{P.push([x0,n.d+n.r]);arc(n.x,n.d,n.r,90);P.push([x0,n.d-n.r]);});
       const sh=new T.Shape();P.forEach(([x,d],i)=>i?sh.lineTo(CX(x),CZ(d)):sh.moveTo(CX(x),CZ(d)));
+      (inner||[]).forEach(q=>{const p=new T.Path(),cx=CX(q.x),cz=CZ(q.d),L=(q.len||0)/2;   // real through-holes: round, or 長圓孔 along d
+        if(!L)p.absarc(cx,cz,q.r,0,2*PI,true);else{p.moveTo(cx+q.r,cz-L);p.absarc(cx,cz-L,q.r,0,-PI,true);p.lineTo(cx-q.r,cz+L);p.absarc(cx,cz+L,q.r,PI,0,true);p.lineTo(cx+q.r,cz-L);}
+        sh.holes.push(p);});
       const g=new T.ExtrudeGeometry(sh,{depth:h1-h0,bevelEnabled:false,curveSegments:4});g.rotateX(PI/2);g.translate(0,h1,0);
       return add(shade(new T.Mesh(g,m||mat.body)));},
     /* hanger ear: top plate (with optional cut-outs), up-stand on the body face, drop lip at the tip (lip is cut where an x-slot runs through it) */
-    bracket(face,tip,d,w,h,leg,m,notches){
+    bracket(face,tip,d,w,h,leg,m,notches,inner){
       const s=Math.sign(tip-face),t=3;m=m||mat.body;
-      if(notches&&notches.length)K.plateCut(Math.min(face,tip),Math.max(face,tip),d-w/2,d+w/2,h-t,h,notches,m);
+      if((notches&&notches.length)||(inner&&inner.length))K.plateCut(Math.min(face,tip),Math.max(face,tip),d-w/2,d+w/2,h-t,h,notches||[],m,inner);
       else K.box(Math.min(face,tip),Math.max(face,tip),h-t,h,d-w/2,d+w/2,m);
       K.box(Math.min(face,face+s*t),Math.max(face,face+s*t),h,h+leg,d-w/2,d+w/2,m);
       const lx0=Math.min(tip,tip-s*t),lx1=Math.max(tip,tip-s*t);let cuts=(notches||[]).filter(n=>n.dir===(s>0?'+x':'-x')).map(n=>[n.d-n.r,n.d+n.r]).sort((a,b)=>a[0]-b[0]),from=d-w/2;
       cuts.forEach(([c0,c1])=>{if(c0-from>0.5)K.box(lx0,lx1,h-12,h,from,c0,m);from=c1;});if(d+w/2-from>0.5)K.box(lx0,lx1,h-12,h,from,d+w/2,m);
     },
     /* hanger hole. Rubber grommets removed for now (anti-vibration pad model to come); a slotted hole is a real cut-out made by plateCut, so nothing to add */
+    /* 排水頭: hollow tube (outer ro, bore ri, length L) leaving a face along axis/dir; dark bore bottom deep inside */
+    pipe(axis,dir,x,h,d,ro,ri,L,m){K.lathe(axis,dir,x,h,d,[[ro,0],[ro,L],[ri,L],[ri,0.5]],m||mat.drain,40);
+      const e=axis==='x'?[x+dir*1,h,d]:[x,h,d+dir*1];K.disc(axis,ri,e[0],e[1],e[2],mat.hole);
+      return axis==='x'?[x+dir*L,h,d]:[x,h,d+dir*L];},
     hole(x,d,h,r,slot){if(slot)return;K.rod('y',r,x,h-1.5,d,4,mat.hole,20);},
     /* 初效濾網: black frame (rounded outer corners, border b) between depths dA<dB, diamond wire mesh in the opening */
     filterFrame(x0,x1,h0,h1,dA,dB,b,r,mesh){

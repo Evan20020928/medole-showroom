@@ -19,7 +19,7 @@ F.A=function(K,P,v){
   HB.d.forEach(d=>{const n={x:-18,d,r:6,dir:'-x'};K.bracket(0,P.brL,d,P.brW,HB.h,28,null,[n]);});   // 長條開口：由機體側一路開到吊耳外緣（實品照片）
   F.earPlate(K,L,P.brR,HB.d,P.brW,HB.h,28,HB.x[1]);   // 電器盒另一側：一片式吊耳（型錄外型圖）
   /* drain head on the back face */
-  K.rod('z',14,P.drain.x,P.drain.h,-P.drain.len/2,P.drain.len,m.drain,32);K.obstacles.push({x0:P.drain.x-14,x1:P.drain.x+14,h0:P.drain.h-14,h1:P.drain.h+14,d0:-P.drain.len,d1:0});K.disc('z',10,P.drain.x,P.drain.h,-P.drain.len-0.3,m.hole);
+  K.pipe('z',-1,P.drain.x,P.drain.h,0,14,10,P.drain.len,m.drain);K.obstacles.push({x0:P.drain.x-14,x1:P.drain.x+14,h0:P.drain.h-14,h1:P.drain.h+14,d0:-P.drain.len,d1:0});
   /* front face: screws, nameplate */
   P.screws.x.forEach(x=>P.screws.h.forEach(h=>K.screw(x,h,D,1,4.5)));
   K.nameplate(P.plate.x,P.plate.h,D+0.8,150,40,'z+',P.id,P.plate.sub);
@@ -78,12 +78,11 @@ F.ears=function(K,o){o.d.forEach((d,i)=>{const dir=o.slotL?o.slotL[i]:'-x',n={x:
   F.earPlate(K,o.faceR,o.tipR,o.d,o.w,o.h,o.leg||28,o.x[1]);};
 /* 一片式吊耳 on the end opposite the control box: one bracket running past both hanger points, each with the hanger hole + a small hole inboard */
 F.earPlate=function(K,face,tip,ds,w,h,leg,hx){const d0=Math.min(...ds)-w/2,d1=Math.max(...ds)+w/2;
-  const ns=ds.map(d=>({x:hx,d,r:6,dir:tip>face?'+x':'-x'}));K.bracket(face,tip,(d0+d1)/2,d1-d0,h,leg,null,ns);
-  ds.forEach((d,i)=>{K.hole(hx,d,h,6,ns[i]);const s=d<(d0+d1)/2?1:-1;K.rod('y',3.2,hx,h-1.5,d+s*20,4,K.mat.hole,16);});};
+  const ns=ds.map(d=>({x:hx,d,r:6,dir:tip>face?'+x':'-x'})),c=(d0+d1)/2;
+  K.bracket(face,tip,c,d1-d0,h,leg,null,ns,ds.map(d=>({x:hx,d:d+(d<c?1:-1)*20,r:3.2})));};   // small holes are real through-holes
 /* flat base plates under both ends with slotted holes (長圓孔) */
-F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>{
-  K.box(o.xL[0],o.xL[1],0,t,d-o.w/2,d+o.w/2,m.body2);K.box(o.xR[0],o.xR[1],0,t,d-o.w/2,d+o.w/2,m.body2);
-  o.slot.forEach(x=>{K.box(x-6,x+6,t-0.5,t+0.6,d-8,d+8,m.hole);[-8,8].forEach(q=>K.rod('y',6,x,t+0.05,d+q,1.1,m.hole,20));});});};   // 長條橢圓孔
+F.basePlates=function(K,o){const m=K.mat,t=o.t||5;o.d.forEach(d=>[o.xL,o.xR].forEach(([a,b])=>{   // 長條橢圓孔: real through-slots
+  K.plateCut(a,b,d-o.w/2,d+o.w/2,0,t,[],m.body2,o.slot.filter(x=>x>a&&x<b).map(x=>({x,d,r:6,len:16})));}));};
 /* natural-return filters, built from the user's Rhino models (MD-30LB / MD-70LB 單出自然回.3dm, tools/filter_rules.py).
    Rules are mm offsets from the 初效濾網 frame rect and from the unit's back face (y = distance behind the back face).
    From the back face outward: 甲醛濾網 (pleated, optional) → 初效濾網 (black frame + diamond wire mesh), held by top/bottom rails.
@@ -149,8 +148,8 @@ F.topRidges=function(K,x0,x1,d0,d1,H,w){const D=d1-d0,hw=(w||12)/2;[0.27,0.57].f
 F.filter=function(K,o){const m=K.mat;K.box(o.x0,o.x1,o.h0,o.h1,o.d0,o.d1,m.body2);K.box(o.x0+10,o.x1-10,o.h0+10,o.h1-10,o.d0-0.6,o.d0+1,m.seam);};
 /* drain head: axis 'z' (back face, dir -1) or 'x' (left end, dir -1) */
 F.drain=function(K,o){const m=K.mat,len=o.len||26;
-  if(o.axis==='x'){K.rod('x',13,o.x-len/2,o.h,o.d,len,m.drain,28);K.obstacles.push({x0:o.x-len,x1:o.x,h0:o.h-13,h1:o.h+13,d0:o.d-13,d1:o.d+13});K.disc('x',9,o.x-len-0.3,o.h,o.d,m.hole);return [o.x-len,o.h,o.d];}
-  K.rod('z',13,o.x,o.h,o.d-len/2,len,m.drain,28);K.obstacles.push({x0:o.x-13,x1:o.x+13,h0:o.h-13,h1:o.h+13,d0:o.d-len,d1:o.d});K.disc('z',9,o.x,o.h,o.d-len-0.3,m.hole);return [o.x,o.h,o.d-len];};
+  if(o.axis==='x'){K.pipe('x',-1,o.x,o.h,o.d,13,9,len,m.drain);K.obstacles.push({x0:o.x-len,x1:o.x,h0:o.h-13,h1:o.h+13,d0:o.d-13,d1:o.d+13});return [o.x-len,o.h,o.d];}
+  K.pipe('z',-1,o.x,o.h,o.d,13,9,len,m.drain);K.obstacles.push({x0:o.x-13,x1:o.x+13,h0:o.h-13,h1:o.h+13,d0:o.d-len,d1:o.d});return [o.x,o.h,o.d-len];};
 F.screws=function(K,list,d){list.forEach(([x,h])=>K.screw(x,h,d,1,4.5));};
 })();
 
