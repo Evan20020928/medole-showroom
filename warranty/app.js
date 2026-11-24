@@ -131,7 +131,7 @@ function issueBody(r){const m=r.meas;const dx=diagnose(m);
   if(r.hqNote)L.push('### 總公司回覆','',r.hqNote,'');
   if(r.formPhoto)L.push('### 服務單影本','',`<img src="${ghBlobURL(r.formPhoto.path)}" width="560">`,'');
   if(r.photos.length){L.push('### 現場照片','');r.photos.forEach((p,i)=>L.push(`**${pad(i+1)}｜${p.cat}**　${p.caption||''}`,'',`<img src="${ghBlobURL(p.path)}" width="420">`,''))}
-  L.push('---',`<sub>由保固維修回報 App 產生，請在 App 內修改內容，直接改這段文字會被覆蓋。</sub>`,'',`<!-- WARRANTY-DATA\n${json}\n-->`);
+  L.push('---',`<sub>此為保固維修回報 App 的資料備份，請到 App 查看與處理：https://evan20020928.github.io/medole-showroom/warranty/</sub>`,'',`<!-- WARRANTY-DATA\n${json}\n-->`);
   return L.join('\n')}
 function fromIssue(is){const mm=(is.body||'').match(DATA_RE);if(!mm)return null;
   let d;try{d=JSON.parse(mm[1])}catch(e){return null}
@@ -383,8 +383,7 @@ function renderDetail(r){const miss=missing(r);
     <aside class="side">
       <div class="card"><h2>案件狀態</h2>
         <div class="pills"><span class="pill s-${esc(r.status)}">${esc(r.status)}</span>${r.urgency==='急件'?'<span class="pill s-需補件">急件</span>':''}</div>
-        <div class="meta"><span>填報人：@${esc(r.createdBy||'—')}</span><span>建立：${rocDT(r.createdAt)}</span><span>更新：${rocDT(r.updatedAt)}</span>
-          <a href="${esc(r.url)}" target="_blank" rel="noopener">在 GitHub 查看 Issue #${r.number}</a></div>
+        <div class="meta"><span>填報人：@${esc(r.createdBy||'—')}</span><span>建立：${rocDT(r.createdAt)}</span><span>更新：${rocDT(r.updatedAt)}</span><span>案件編號：#${r.number}</span></div>
         ${miss.length?`<div class="dx bad" style="margin-top:10px"><b>缺件</b><span>${esc(miss.join('、'))}</span></div>`:''}
       </div>
       ${S.canWrite?`<div class="card"><h2>總公司處理<small>更新狀態並留言給中部</small></h2>
@@ -443,7 +442,7 @@ async function exportPDF(r){const btn=$('#pdf');if(!window.jspdf||!window.html2c
     saveFile(pdf.output('blob'),`保固維修回報_${r.no||'未編號'}_${(r.customer||'').replace(/[\\/:*?"<>|]/g,'')}.pdf`);toast('PDF 已下載')}
   catch(e){toast('PDF 產生失敗：'+(e&&e.message||''),'bad')}
   finally{off.innerHTML='';btn.disabled=false;btn.textContent=label}}
-function exportCSV(rows){const cols=[['服務單號','no'],['狀態','status'],['登記日期',r=>roc(r.regDate)],['服務日期',r=>roc(r.serviceDate)],['客戶','customer'],['地址','address'],['產品','product'],['機型','model'],['機號','serial'],['安裝年月',r=>roc(r.installDate)],['保固','warranty'],['故障情況','fault'],['處理方式','handling'],['環境溫度',r=>r.meas.ambT],['環境濕度',r=>r.meas.ambRH],['出風溫度',r=>r.meas.outT],['出風濕度',r=>r.meas.outRH],['運轉電流',r=>r.meas.current],['管溫',r=>r.meas.pipeT],['檢修情況','inspection'],['申請事項','request'],['零件／新機','parts'],['急迫性','urgency'],['總公司回覆','hqNote'],['照片數',r=>r.photos.length],['技術員','tech'],['填報人','createdBy'],['更新時間',r=>rocDT(r.updatedAt)],['GitHub','url']];
+function exportCSV(rows){const cols=[['服務單號','no'],['狀態','status'],['登記日期',r=>roc(r.regDate)],['服務日期',r=>roc(r.serviceDate)],['客戶','customer'],['地址','address'],['產品','product'],['機型','model'],['機號','serial'],['安裝年月',r=>roc(r.installDate)],['保固','warranty'],['故障情況','fault'],['處理方式','handling'],['環境溫度',r=>r.meas.ambT],['環境濕度',r=>r.meas.ambRH],['出風溫度',r=>r.meas.outT],['出風濕度',r=>r.meas.outRH],['運轉電流',r=>r.meas.current],['管溫',r=>r.meas.pipeT],['檢修情況','inspection'],['申請事項','request'],['零件／新機','parts'],['急迫性','urgency'],['總公司回覆','hqNote'],['照片數',r=>r.photos.length],['技術員','tech'],['填報人','createdBy'],['更新時間',r=>rocDT(r.updatedAt)],['App 連結',r=>location.href.split('#')[0]+'#r-'+r.number]];
   const cell=v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const csv='﻿'+[cols.map(c=>c[0]).join(','),...rows.map(r=>cols.map(c=>cell(typeof c[1]==='function'?c[1](r):r[c[1]])).join(','))].join('\r\n');
   saveFile(new Blob([csv],{type:'text/csv;charset=utf-8'}),`保固維修案件_${today()}.csv`);toast('CSV 已下載')}
