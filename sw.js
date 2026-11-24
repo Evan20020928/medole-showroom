@@ -7,7 +7,6 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promis
 self.addEventListener('fetch',e=>{
   const req=e.request;if(req.method!=='GET')return;
   const url=new URL(req.url);
-  if(url.origin===location.origin&&url.pathname.includes('/warranty/'))return;   // 保固維修回報 App 不走展示台快取
   if(req.mode==='navigate'){   // page: network first so updates show up, cached copy when offline
     e.respondWith(fetch(req,{cache:'no-cache'}).then(r=>{const c=r.clone();caches.open(VERSION).then(x=>x.put('./',c));return r;}).catch(()=>caches.match('./').then(r=>r||caches.match('index.html'))));return;}
   if(url.origin===location.origin||CDN.test(req.url)){   // assets: cache first, refresh in the background
