@@ -446,3 +446,32 @@ function exportCSV(rows){const cols=[['服務單號','no'],['狀態','status'],[
   const cell=v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const csv='﻿'+[cols.map(c=>c[0]).join(','),...rows.map(r=>cols.map(c=>cell(typeof c[1]==='function'?c[1](r):r[c[1]])).join(','))].join('\r\n');
   saveFile(new Blob([csv],{type:'text/csv;charset=utf-8'}),`保固維修案件_${today()}.csv`);toast('CSV 已下載')}
+
+/* ---------- 安裝成 App ---------- */
+(function installSetup(){
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+  const btn=$('#install');if(!btn)return;
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  if(standalone)return;
+  const ua=navigator.userAgent;
+  const isIOS=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isMacSafari=!isIOS&&/Macintosh/.test(ua)&&/Safari/.test(ua)&&!/Chrome|Chromium|Edg|Firefox/.test(ua);
+  let deferred=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;btn.hidden=false});
+  window.addEventListener('appinstalled',()=>{btn.hidden=true;deferred=null;toast('已安裝，之後可從桌面或主畫面開啟')});
+  if(isIOS||isMacSafari)btn.hidden=false;
+  else setTimeout(()=>{if(!deferred)btn.hidden=false},3000);   // 瀏覽器沒提供安裝視窗時，按下去顯示手動步驟
+  const share='<span class="shot"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 10V2M5 4.5 8 1.5l3 3M4 7H3v7h10V7h-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+  function guide(){const steps=isIOS?[
+      '請用 <b>Safari</b> 開啟這個網址（LINE 或其他 App 內開的話，先點右上角選「用 Safari 開啟」）',
+      `點畫面下方（iPad 在右上方）的分享按鈕 ${share}`,
+      '往下滑，點「<b>加入主畫面</b>」',
+      '點右上角「<b>新增</b>」，主畫面就會出現「保固回報」圖示']
+    :isMacSafari?['點 Safari 選單列的「檔案」','選「<b>加入 Dock</b>」','按「加入」，Dock 和應用程式資料夾就會出現「保固回報」']
+    :/Android/.test(ua)?['請用 <b>Chrome</b> 開啟這個網址','點右上角「⋮」選單','點「<b>安裝應用程式</b>」或「加到主畫面」','按「安裝」，主畫面就會出現「保固回報」圖示']
+    :['請用 <b>Chrome</b> 或 <b>Edge</b> 開啟這個網址','點網址列右側的安裝圖示，或右上角「⋮」選單 →「投放、儲存及分享」→「<b>安裝網頁為應用程式</b>」','按「安裝」，桌面和開始選單就會出現「保固回報」'];
+    $('#modal').innerHTML=`<div class="mask"><div class="dlg" role="dialog" aria-modal="true"><h3>安裝成 App</h3><ol>${steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+      <p class="muted" style="margin:0">${isIOS||isMacSafari?"安裝後第一次從圖示開啟，要再貼一次權杖（Apple 裝置的 App 和瀏覽器分開記錄），之後就會記住。":"安裝後點圖示就會用獨立視窗開啟，登入狀態會保留。"}</p><div class="row-btn"><button class="btn" id="m-no">知道了</button></div></div></div>`;
+    $('#m-no').onclick=()=>$('#modal').innerHTML=''}
+  btn.onclick=async()=>{if(deferred){deferred.prompt();const r=await deferred.userChoice.catch(()=>null);deferred=null;if(r&&r.outcome==='accepted')btn.hidden=true}else guide()};
+})();
