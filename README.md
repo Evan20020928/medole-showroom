@@ -14,4 +14,4 @@
 
 ## 保固維修回報 App
 
-`warranty/` 資料夾是中部分公司回報保固維修給北部總公司的 App，網址為本站網址加上 `/warranty/`。案件資料存在私人 repo，不在這裡。設定方式見 [warranty/設定說明.md](warranty/設定說明.md)。
+已搬到獨立網址 https://evan20020928.github.io/warranty-app/（repo：`warranty-app`）。`warranty/` 只留一個自動跳轉頁。
