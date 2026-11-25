@@ -47,9 +47,9 @@
        round base flange on the box face, collar with a thick rolled front lip + rubber gasket, dark damper blade inside,
        and the actuator housing hanging directly under the collar (saddle → rounded housing → bottom lip). */
     {const x=902,h=188,R=59,bR=51.5,d0=612,L=109.4;
-     K.rod('z',71,x,h,609,6,m.teal,72);
+     K.rod('z',71,x,h,609.2,4.6,m.teal,72);   // base flange: kept 0.9 mm off the box face (606) and off the collar start (612) — no coplanar faces
      K.lathe('z',1,x,h,d0,[[bR,0],[R,0],[R,L-18],[R+3,L-15],[R+4,L-9],[R+2,L-4],[R-5,L-1],[R-7,L],[bR,L]],m.teal);
-     K.rod('z',bR,x,h,d0+L/2,L,m.tealDark,64,true);K.disc('z',bR,x,h,d0+2,m.hole);
+     K.rod('z',bR-0.8,x,h,d0+L/2,L-1,m.tealDark,64,true);K.disc('z',bR-1,x,h,d0+2,m.hole);   // inset from the collar's inner wall (no coplanar faces)
      K.torus('z',R-5,2.2,x,h,d0+L-3,m.rubber);
      K.disc('z',bR-2,x,h,d0+52,m.seam,0.6);   // damper blade, partly open
      K.box(x-28,x+28,118,142,d0+14,d0+70,m.teal,4);                 // saddle under the collar
