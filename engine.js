@@ -68,8 +68,8 @@ const mat={
   seam:new T.MeshStandardMaterial({color:0x0b0c0d,roughness:1}),
   plastic:new T.MeshStandardMaterial({color:lin(new T.Color(0x121213)),metalness:0,roughness:.3,side:T.DoubleSide}),
   hole:new T.MeshStandardMaterial({color:0x000000,roughness:1,envMapIntensity:0,side:T.DoubleSide}),
-  teal:new T.MeshStandardMaterial({color:0x5c9aa0,metalness:.05,roughness:.5,side:T.DoubleSide}),
-  tealDark:new T.MeshStandardMaterial({color:0x3f6f74,metalness:.05,roughness:.55,side:T.DoubleSide}),
+  teal:new T.MeshStandardMaterial({color:lin(new T.Color(0x4a8285)),metalness:.02,roughness:.42,side:T.DoubleSide}),   // 新風風門：藍綠色塑膠（實品照片）
+  tealDark:new T.MeshStandardMaterial({color:lin(new T.Color(0x2f5a5c)),metalness:.02,roughness:.55,side:T.DoubleSide}),
   rubber:new T.MeshStandardMaterial({color:0x101112,roughness:.9}),
   clear:new T.MeshStandardMaterial({color:0xa9d6d8,metalness:0,roughness:.15,transparent:true,opacity:.55,depthWrite:false}),
   steel:new T.MeshStandardMaterial({color:0xb8bec2,metalness:.85,roughness:.35}),

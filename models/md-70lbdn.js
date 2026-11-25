@@ -43,15 +43,20 @@
     K.box(776,1024,37,51,606,612,m.body);
     [790,1006.5].forEach(x=>K.rod('z',11,x,44,618,12,m.plastic,6));
 
-    /* 4" fresh-air flange + motorised damper (teal) + clear actuator */
+    /* 4" fresh-air flange + motorised damper, all teal plastic (product photo):
+       round base flange on the box face, collar with a thick rolled front lip + rubber gasket, dark damper blade inside,
+       and the actuator housing hanging directly under the collar (saddle → rounded housing → bottom lip). */
     {const x=902,h=188,R=59,bR=51.5,d0=612,L=109.4;
      K.rod('z',71,x,h,609,6,m.teal,72);
-     K.lathe('z',1,x,h,d0,[[bR,0],[R,0],[R,L-16],[R+2,L-14],[R+2,L-10],[R-6,L-8],[R-7,L],[bR,L]],m.teal);
+     K.lathe('z',1,x,h,d0,[[bR,0],[R,0],[R,L-18],[R+3,L-15],[R+4,L-9],[R+2,L-4],[R-5,L-1],[R-7,L],[bR,L]],m.teal);
      K.rod('z',bR,x,h,d0+L/2,L,m.tealDark,64,true);K.disc('z',bR,x,h,d0+2,m.hole);
-     K.torus('z',R-6,2.6,x,h,d0+L-5,m.rubber);
-     K.disc('z',bR-3,x,h,d0+50,m.tealDark,1.05);K.rod('y',3,x,h,d0+50,103,m.grey,12);
-     const act=K.box(x-34.5,x+34.5,83.5,124.5,618,668,m.clear);act.castShadow=false;
-     K.box(x-22,x+22,91.5,118.5,628,658,m.tealDark);}
+     K.torus('z',R-5,2.2,x,h,d0+L-3,m.rubber);
+     K.disc('z',bR-2,x,h,d0+52,m.seam,0.6);   // damper blade, partly open
+     K.box(x-28,x+28,118,142,d0+14,d0+70,m.teal,4);                 // saddle under the collar
+     K.box(x-38,x+38,78,122,d0+8,d0+76,m.teal,8);                   // actuator housing
+     K.box(x-31,x+31,71,79,d0+14,d0+70,m.tealDark,4);               // bottom lip
+     K.box(x-30,x+30,99,101,d0+76,d0+76.8,m.tealDark);              // parting line on the housing front
+     [x-26,x+26].forEach(sx=>K.screw(sx,88,d0+76,1,2.6,m.tealDark));}   // housing screws
 
 
     /* ---------- supply side (front, outlet face d=527) ---------- */
