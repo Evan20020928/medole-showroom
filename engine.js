@@ -11,6 +11,9 @@ const T=THREE,MM=0.001,PI=Math.PI;
 const CFG=window.SHOWROOM||{mode:'single',models:[]};
 const DATA=window.MEDOLE_DATA||{specs:{},common:{},options:[]};
 const REG={};(window.MEDOLE_MODELS||[]).forEach(m=>REG[m.id]=m);
+/* product categories (header switch). Models without .cat are dehumidifiers. Add 空氣清淨機 here later. */
+const CATS=[{id:'dh',name:'吊隱式除濕機'},{id:'erv',name:'全熱交換器'}];
+const catOf=id=>(REG[id]&&REG[id].cat)||'dh';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -63,9 +66,11 @@ const FINISH={
   white:null
 };
 FINISH.white=FINISH.ivory;   // 白色機種實際也是偏米色的白
+FINISH.galv={body:0xc6cbcf,body2:0xb3b9bd,metal:.6,rough:.32,env:1.05};   // 鍍鋅鋼板（全熱交換器，實品照片）
 const mat={
   body:new T.MeshStandardMaterial(),body2:new T.MeshStandardMaterial(),
   seam:new T.MeshStandardMaterial({color:0x0b0c0d,roughness:1}),
+  ctrl:new T.MeshStandardMaterial({color:lin(new T.Color(0x1c1d20)),metalness:.15,roughness:.5}),   // 黑色電控箱
   plastic:new T.MeshStandardMaterial({color:lin(new T.Color(0x121213)),metalness:0,roughness:.3,side:T.DoubleSide}),
   hole:new T.MeshStandardMaterial({color:0x000000,roughness:1,envMapIntensity:0,side:T.DoubleSide}),
   teal:new T.MeshStandardMaterial({color:lin(new T.Color(0x4a8285)),metalness:.02,roughness:.3,transparent:true,opacity:.72,depthWrite:true,side:T.DoubleSide}),   // 半透明（depthWrite on: stable while rotating）   // 新風風門：藍綠色塑膠（實品照片）
@@ -328,6 +333,20 @@ function makeKit(group,center){
       if(dir==='x-'){p.rotation.y=-PI/2;px-=0.8;}else if(dir==='x+'){p.rotation.y=PI/2;px+=0.8;}else if(dir==='z-'){p.rotation.y=PI;pd-=0.8;}else pd+=0.8;
       p.position.set(CX(px),h,CZ(pd));return add(p);
     },
+    /* plane decal helper: tex on a w×hh plane, 0.8 mm off the face, facing dir */
+    decal(x,h,d,w,hh,dir,tex){const p=new T.Mesh(new T.PlaneGeometry(w,hh),new T.MeshStandardMaterial({map:tex,roughness:.5,transparent:true,alphaTest:.04,depthWrite:false}));
+      let px=x,pd=d;if(dir==='x-'){p.rotation.y=-PI/2;px-=0.8;}else if(dir==='x+'){p.rotation.y=PI/2;px+=0.8;}else if(dir==='z-'){p.rotation.y=PI;pd-=0.8;}else pd+=0.8;
+      p.position.set(CX(px),h,CZ(pd));return add(p);},
+    /* 黃色高壓警示貼紙（全熱交換器電控箱，實品照片）: yellow square, black border, warning triangle with lightning */
+    hvSticker(x,h,d,w,hh,dir){const tex=canvasTex(256,256,(g,W)=>{g.fillStyle='#f3c400';g.fillRect(0,0,W,W);g.lineWidth=10;g.strokeStyle='#111';g.strokeRect(9,9,W-18,W-18);
+        g.beginPath();g.moveTo(W/2,46);g.lineTo(W-48,206);g.lineTo(48,206);g.closePath();g.lineJoin='round';g.lineWidth=12;g.stroke();
+        g.beginPath();g.moveTo(W/2+12,88);g.lineTo(W/2-22,148);g.lineTo(W/2+2,148);g.lineTo(W/2-14,192);g.lineTo(W/2+26,130);g.lineTo(W/2+2,130);g.lineTo(W/2+20,88);g.closePath();g.fillStyle='#111';g.fill();});
+      return K.decal(x,h,d,w,hh,dir,tex);},
+    /* 綠色 MEDOLE 標誌 */
+    logo(x,h,d,w,dir){const tex=canvasTex(512,128,(g,W,H)=>{g.clearRect(0,0,W,H);g.fillStyle='#1f9a4a';
+        g.beginPath();g.arc(58,64,40,0.6,2*PI-0.6);g.lineWidth=14;g.strokeStyle='#1f9a4a';g.stroke();
+        g.font='italic 800 78px Arial,"Noto Sans",sans-serif';g.textBaseline='middle';g.fillText('MEDOLE',112,68);});
+      return K.decal(x,h,d,w,w/4,dir,tex);},
     nameplate(x,h,d,w,hh,dir,title,sub){
       const tex=canvasTex(1024,232,(g,W,H)=>{g.fillStyle='#f6f8f8';g.fillRect(0,0,W,H);g.fillStyle='#0e6f78';g.fillRect(0,0,22,H);
         g.fillStyle='#132022';g.font='800 100px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(title,62,H*0.42);
@@ -494,6 +513,21 @@ function fmtPower(p){const a=String(p).split('/');return a.length===3?a[0]+' V /
 function specRows(id,def){
   const s=DATA.specs[id]||{},C=DATA.common||{},rows=[];
   const r=(k,v,cls)=>{if(v!=null&&v!=='')rows.push([k,v,cls]);};
+  if(catOf(id)==='erv'){
+    r('外型尺寸 L×W×H',s.L+' × '+s.W+' × '+s.H+' mm');
+    r('風量',s.cmh+' CMH');
+    r('風管接頭',s.N?'Φ'+s.N+' mm × 4（RA／SA／EA／OA）':'','txt');
+    r('接頭長度 C',s.C+' mm');
+    r('吊架孔距 L1 × W1',s.L1+' × '+s.W1+' mm');
+    r('吊架高度 H1',s.H1+' mm（距機頂）');
+    r('接頭間距 W2',s.W2+' mm');
+    r('能量回收率','70% 以上','txt');
+    r('整機 PM2.5 過濾效率','95% 以上','txt');
+    r('馬達','DC 直流變頻','txt');
+    r('機體材質',(def&&def.material)||'鍍鋅鋼板','txt');
+    r('維修孔',id==='MH-D2DCPMTHZ'?'':'須預留 450 × 450','txt');
+    r('濾網保養','每 90 天自行檢查是否須更新','txt');
+    return rows;}
   r('外型尺寸 W×D×H',s.size?s.size.replace(/\*/g,' × ')+' mm':'');
   r('除濕能力',s.cap30?s.cap30+' L/日 <small>(30℃/80%RH)</small>':'');
   r('',s.cap27?s.cap27+' L/日 <small>(27℃/60%RH)</small>':'');
@@ -520,7 +554,7 @@ function specRows(id,def){
 function renderSheet(id,def,v){
   const rows=specRows(id,def);
   $('specTable').innerHTML=rows.map(([k,v,c])=>'<dt>'+esc(k)+'</dt><dd'+(c?' class="'+c+'"':'')+'>'+v+'</dd>').join('');
-  $('optList').innerHTML=(DATA.options||[]).map(o=>'<li>'+esc(o)+'</li>').join('');
+  {const erv=catOf(id)==='erv',ol=$('optList');ol.innerHTML=erv?'':(DATA.options||[]).map(o=>'<li>'+esc(o)+'</li>').join('');if(ol.parentElement)ol.parentElement.hidden=erv;}
   $('note').textContent=(def&&def.note)||'此型號 3D 模型建置中，規格可先參考。';
   // variant picker
   const box=$('variantBox');
@@ -584,10 +618,12 @@ function selectText(){const r=document.createRange();r.selectNodeContents($('sha
 /* ---------- head ---------- */
 function renderHead(id){
   const s=DATA.specs[id]||{},def=REG[id];
-  const m=id.match(/^(MD-)(A?)(\d+)(.*)$/);
+  const m=id.match(/^(MD-)(A?)(\d+)(.*)$/)||id.match(/^(MH-)()(D\d+)(.*)$/);
   $('modelName').innerHTML=m?esc(m[1]+m[2])+'<span>'+esc(m[3])+'</span>'+esc(m[4]):esc(id);
+  $('modelName').classList.toggle('long',id.length>10);
   $('eyebrow').textContent='米多力・'+((def&&def.kind)||'吊隱式風管除濕機');
-  $('kpis').innerHTML=[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']].filter(k=>k[0]).map(k=>k[3]?
+  const erv=catOf(id)==='erv';
+  $('kpis').innerHTML=(erv?[[s.cmh,'CMH','風量'],[s.duct?'Φ'+s.duct:'','mm','風管接頭'],['70','%↑','能量回收率']]:[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']]).filter(k=>k[0]).map(k=>k[3]?
     '<button type="button" class="kpi-ef" id="btnEf" aria-expanded="false" aria-controls="efPop"><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+' <i aria-hidden="true">ⓘ</i></span></button>':
     '<div><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+'</span></div>').join('');
   /* 能源因數算法: EF = 除濕能力(27°C/60%, L/日) ÷ 消耗功率(W) × 1000 ÷ 24 */
@@ -606,6 +642,7 @@ function select(id,vkey,push){
   const def=REG[id];
   const changedModel=current.id!==id;
   current.id=id;
+  if(MULTI){const c=catOf(id);lastOfCat[c]=id;if(c!==curCat){curCat=c;if(typeof renderPicker==='function')renderPicker();}renderCats();}
   if(def){
     const v=parseVariant(def,vkey);current.v=v.key||null;
     applyFinish(def.finish);
@@ -629,7 +666,7 @@ function fromHash(){
     if(SETS){
       const m=h.match(/^set-([0-9a-z]+)(?:\/(.*))?$/);
       if(h==='reset-all'){storeSet('');useSet('');h='';}
-      else if(m&&decSet(m[1])&&decSet(m[1]).length===CFG.models.length){storeSet('');useSet('');h=m[2]||'';}
+      else if(m&&decSet(m[1])&&(decSet(m[1]).length===CFG.models.length||m[1]===encSet(CFG.models.slice(0,13)))){storeSet('');useSet('');h=m[2]||'';}   // old 「全部型號」 link (13 dehumidifiers) = all
       else if(m&&decSet(m[1])){storeSet(m[1]);useSet(m[1]);h=m[2]||'';}
       else if(h.indexOf('solo-')===0){h=h.slice(5);   // older single-model links: honoured as a one-model set unless this device already has a limit
         const had=storedSet();if(had&&decSet(had))useSet(had);
@@ -653,24 +690,31 @@ function openPicker(){const pk=$('picker');pk.hidden=false;
 function closePicker(){const pk=$('picker');if(pk.hidden)return;pk.hidden=true;$('modelBtn').focus();}
 const capOf=id=>+(DATA.specs[id]||{}).cap30;
 const SIZE=[['小型 30–70 L/日','小型 30–70 L',id=>capOf(id)<=70],['中型 100–140 L/日','中型 100–140 L',id=>capOf(id)>70&&capOf(id)<=140],['大型 210–300 L/日','大型 210–300 L',id=>capOf(id)>140]];
-const GROUPS=SIZE.map(g=>[g[0],g[2]]);
-const PRESETS=SIZE.map(g=>[g[1],g[2]]).concat([['全選',()=>true],['清除',()=>false]]);
+const GROUPS=SIZE.map(g=>[g[0],id=>catOf(id)==='dh'&&g[2](id)]).concat([['全熱交換器 DC-PM2.5 過濾系列',id=>catOf(id)==='erv']]);
+const PRESETS=SIZE.map(g=>[g[1],g[2]]).concat([['全熱交換器',id=>catOf(id)==='erv'],['全選',()=>true],['清除',()=>false]]);
+let curCat='dh';const lastOfCat={};
+function renderCats(){const el=$('catSeg');if(!el||!MULTI)return;const pool=POOL(),avail=CATS.filter(c=>pool.some(id=>catOf(id)===c.id));
+  el.hidden=avail.length<2||SOLO;
+  el.innerHTML=avail.map(c=>'<button type="button" data-cat="'+c.id+'" aria-pressed="'+(c.id===curCat?'true':'false')+'">'+esc(c.name)+'</button>').join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=b.dataset.cat;if(c===curCat)return;
+    const pick=(lastOfCat[c]&&pool.indexOf(lastOfCat[c])>=0)?lastOfCat[c]:pool.find(id=>catOf(id)===c);if(pick)select(pick,null,true);});}
 const ALL_TOKEN=()=>encSet(CFG.models);
 let picking=null;   // Set of model ids while building a limited share link
 function renderPicker(){
   if(!MULTI)return;
   const pool=POOL();
-  $('pickerList').innerHTML=GROUPS.map(([title,fn])=>{const items=pool.filter(fn);if(!items.length)return '';
+  const show=picking?pool:pool.filter(id=>catOf(id)===curCat);
+  $('pickerList').innerHTML=GROUPS.map(([title,fn])=>{const items=show.filter(fn);if(!items.length)return '';
     return '<li class="pk-group"><h3>'+esc(title)+'</h3><ul>'+items.map(id=>{const s=DATA.specs[id]||{},def=REG[id];
       const n=def?(def.variants&&!def.variants.fixed?variantKeys(def).length+' 種組合':'標配'):'建模中';
       return '<li><button type="button" class="pk" data-id="'+esc(id)+'"><span class="pk-sw '+esc(def?def.finish:'')+'" aria-hidden="true"></span><b>'+esc(id)+'</b>'+
-        '<span class="pk-meta">'+esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
+        '<span class="pk-meta">'+(catOf(id)==='erv'?esc(s.cmh)+' CMH・Φ'+esc(s.duct):esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH')+'</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
   document.querySelectorAll('#pickerList .pk').forEach(b=>b.onclick=()=>{
     if(picking){const id=b.dataset.id;if(picking.has(id))picking.delete(id);else picking.add(id);syncPicking();return;}
     closePicker();select(b.dataset.id,null,true);});
   $('pickerTitle').textContent=ALLOWED?'選擇型號（'+pool.length+' 款）':'選擇型號';
   const tool=$('setTool');if(tool)tool.hidden=!SETS||!!ALLOWED;
-  if(ALLOWED)stopPicking();
+  if(ALLOWED)picking=null;
 }
 function syncPicking(){
   const pk=$('picker'),on=!!picking;pk.classList.toggle('choosing',on);$('setPanel').hidden=!on;$('btnSetMode').hidden=on;$('allBox').hidden=on;
@@ -679,15 +723,15 @@ function syncPicking(){
   if(!on)return;
   const ids=CFG.models.filter(id=>picking.has(id));
   $('setPresets').querySelectorAll('button').forEach((b,i)=>{const fn=PRESETS[i][1],want=CFG.models.filter(fn);
-    b.setAttribute('aria-pressed',i<SIZE.length&&want.length===ids.length&&want.every(id=>picking.has(id))?'true':'false');});
+    b.setAttribute('aria-pressed',i<PRESETS.length-2&&want.length===ids.length&&want.every(id=>picking.has(id))?'true':'false');});
   const ok=ids.length>0,first=ids.indexOf(current.id)>=0?current.id:ids[0];
   $('setUrl').textContent=ok?setUrl(encSet(ids),first,''):'請至少勾選一款型號。';
   $('btnSetCopy').disabled=!ok;
   $('setHint').textContent=!ok?'':ids.length===CFG.models.length?'已選全部 '+ids.length+' 款。對方打開後可看到全部型號，之前若被限定過也會解除。':'已選 '+ids.length+' 款：'+ids.join('、')+'。對方打開後只看得到這些型號，之後重新開啟也一樣。';
 }
-function startPicking(){picking=new Set(CFG.models.filter(PRESETS[0][1]));syncPicking();const f=$('picker').querySelector('.pk');if(f)f.focus();}
-function stopPicking(){picking=null;if($('setPanel'))syncPicking();}
-function onSetChange(){renderPicker();applySetManifest();}
+function startPicking(){picking=new Set(CFG.models.filter(PRESETS[0][1]));renderPicker();syncPicking();const f=$('picker').querySelector('.pk');if(f)f.focus();}
+function stopPicking(){const was=!!picking;picking=null;if(was)renderPicker();if($('setPanel'))syncPicking();}
+function onSetChange(){renderPicker();renderCats();applySetManifest();}
 function openPicker(){const pk=$('picker');pk.hidden=false;
   pk.querySelectorAll('.pk').forEach(b=>b.setAttribute('aria-current',b.dataset.id===current.id?'true':'false'));
   const cur=pk.querySelector('.pk[aria-current="true"]')||pk.querySelector('.pk');if(cur){cur.focus();if(cur.scrollIntoView)cur.scrollIntoView({block:'nearest'});}}
