@@ -245,12 +245,14 @@ function makeKit(group,center){
     /* flat plate h0..h1 over x0..x1 × d0..d1 with real cut-outs: each notch = round hole (x,d,r) + slot running out to the plate edge in dir */
     plateCut(x0,x1,d0,d1,h0,h1,notches,m,inner){
       const E={'-d':[],'+x':[],'+d':[],'-x':[]};(notches||[]).forEach(n=>E[n.dir].push(n));
-      const P=[],arc=(cx,cd,r,a0)=>{for(let i=0;i<=16;i++){const a=(a0-180*i/16)*PI/180;P.push([cx+r*Math.cos(a),cd+r*Math.sin(a)]);}};
+      /* each notch = round hole r + a neck of half-width nw (default r = straight slot; nw<r = keyhole) running out to the edge */
+      const P=[],arc=(cx,cd,r,a0,sw)=>{const n=Math.max(16,Math.round(sw/10));for(let i=0;i<=n;i++){const a=(a0-sw*i/n)*PI/180;P.push([cx+r*Math.cos(a),cd+r*Math.sin(a)]);}};
+      const nk=(n,e)=>{const w=Math.min(n.nw||n.r,n.r),a=Math.asin(w/n.r)*180/PI;return {w,a0:e-a,sw:360-2*a};};
       // CCW outline in (x,d): -d edge x0→x1, +x edge d0→d1, +d edge x1→x0, -x edge d1→d0
-      P.push([x0,d0]);E['-d'].sort((a,b)=>a.x-b.x).forEach(n=>{P.push([n.x-n.r,d0]);arc(n.x,n.d,n.r,180);P.push([n.x+n.r,d0]);});
-      P.push([x1,d0]);E['+x'].sort((a,b)=>a.d-b.d).forEach(n=>{P.push([x1,n.d-n.r]);arc(n.x,n.d,n.r,270);P.push([x1,n.d+n.r]);});
-      P.push([x1,d1]);E['+d'].sort((a,b)=>b.x-a.x).forEach(n=>{P.push([n.x+n.r,d1]);arc(n.x,n.d,n.r,0);P.push([n.x-n.r,d1]);});
-      P.push([x0,d1]);E['-x'].sort((a,b)=>b.d-a.d).forEach(n=>{P.push([x0,n.d+n.r]);arc(n.x,n.d,n.r,90);P.push([x0,n.d-n.r]);});
+      P.push([x0,d0]);E['-d'].sort((a,b)=>a.x-b.x).forEach(n=>{const k=nk(n,270);P.push([n.x-k.w,d0]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([n.x+k.w,d0]);});
+      P.push([x1,d0]);E['+x'].sort((a,b)=>a.d-b.d).forEach(n=>{const k=nk(n,0);P.push([x1,n.d-k.w]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([x1,n.d+k.w]);});
+      P.push([x1,d1]);E['+d'].sort((a,b)=>b.x-a.x).forEach(n=>{const k=nk(n,90);P.push([n.x+k.w,d1]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([n.x-k.w,d1]);});
+      P.push([x0,d1]);E['-x'].sort((a,b)=>b.d-a.d).forEach(n=>{const k=nk(n,180);P.push([x0,n.d+k.w]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([x0,n.d-k.w]);});
       const sh=new T.Shape();P.forEach(([x,d],i)=>i?sh.lineTo(CX(x),CZ(d)):sh.moveTo(CX(x),CZ(d)));
       (inner||[]).forEach(q=>{const p=new T.Path(),cx=CX(q.x),cz=CZ(q.d),L=(q.len||0)/2;   // real through-holes: round, or 長圓孔 along d
         if(!L)p.absarc(cx,cz,q.r,0,2*PI,true);else{p.moveTo(cx+q.r,cz-L);p.absarc(cx,cz-L,q.r,0,-PI,true);p.lineTo(cx-q.r,cz+L);p.absarc(cx,cz+L,q.r,PI,0,true);p.lineTo(cx+q.r,cz-L);}
