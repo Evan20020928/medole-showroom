@@ -36,7 +36,7 @@ function coreMat(){if(CORE_M)return CORE_M;const t=tex(256,256,(g,W,H)=>{g.fillS
   t.repeat.set(1/120,1/120);CORE_M=new TH.MeshStandardMaterial({map:t,roughness:.85,metalness:0});return CORE_M;}
 function boardMat(){if(BOARD_M)return BOARD_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#3d3f42';g.fillRect(0,0,W,H);
     for(let i=0;i<5200;i++){const v=40+Math.random()*70|0;g.fillStyle='rgba('+v+','+v+','+(v+3)+','+(.35+Math.random()*.5)+')';g.fillRect(Math.random()*W,Math.random()*H,1+Math.random()*2.2,1+Math.random()*2.2);}});
-  t.repeat.set(3,1);BOARD_M=new TH.MeshStandardMaterial({map:t,roughness:.95,metalness:0});return BOARD_M;}
+  t.repeat.set(2,1);BOARD_M=new TH.MeshStandardMaterial({map:t,roughness:.95,metalness:0});return BOARD_M;}
 function filMat(){if(FIL_M)return FIL_M;const t=tex(256,64,(g,W,H)=>{for(let x=0;x<W;x+=16){const gr=g.createLinearGradient(x,0,x+16,0);gr.addColorStop(0,'#f4f4f1');gr.addColorStop(.5,'#d9dbd8');gr.addColorStop(1,'#f4f4f1');g.fillStyle=gr;g.fillRect(x,0,16,H);}});
   FIL_M=new TH.MeshStandardMaterial({map:t,roughness:.9,metalness:0});return FIL_M;}
 /* 法蘭＋接頭剖面 (r, z)：圓形法蘭盤 Rf → 錐形漸縮 Rc1 → 接頭 R，末端兩道捲邊（實品照片） */
@@ -49,10 +49,10 @@ function build(K,id){
   const x0=-L/2,x1=L/2,dB=-W/2,dF=W/2,ztop=H-H1,movers=[];
   /* body: galvanised steel box; one standing seam along the lid; screws along the lid edges */
   K.box(x0,x1,0,H,dB,dF,m.body,3);
-  {const sd=dB+22;K.box(x0+6,x1-6,H,H+7,sd-4,sd+4,m.body2,1.5);K.box(x0+6,x1-6,H,H+0.6,sd-9,sd+9,m.body2);}   // 唯一一條板金接縫：沿長度、靠背側邊緣（實品照片）
-  /* back face: dark grey speckled insulation board panel (實品照片：明顯不同的顏色與材質) + black pull handle */
-  {const pm=new TH.Mesh(new TH.BoxGeometry(L-16,H-14,4),boardMat());pm.position.set(K.cx(0),H/2,K.cz(dB-2));pm.castShadow=pm.receiveShadow=true;K.addMesh(pm);
-   const hx=x1-46,hh=H*0.62;K.box(hx-5,hx+5,hh-22,hh+22,dB-16,dB-4,m.ctrl,2);K.box(hx-5,hx+5,hh+14,hh+22,dB-24,dB-4,m.ctrl,2);K.box(hx-5,hx+5,hh-22,hh-14,dB-24,dB-4,m.ctrl,2);}
+  /* 唯一一條板金接縫：橫跨寬度，距 EA/OA 端約 42%（實品照片） */
+  {const xs=x0+0.42*L;K.box(xs-4,xs+4,H,H+7,dB+6,dF-6,m.body2,1.5);K.box(xs-9,xs+9,H,H+0.6,dB+6,dF-6,m.body2);}
+  /* EA/OA end face (室外側): dark grey speckled insulation board, ducts come through it (實品照片) */
+  {const pm=new TH.Mesh(new TH.BoxGeometry(2,H-10,W-10),boardMat());pm.position.set(K.cx(x0-1),H/2,K.cz(0));pm.castShadow=pm.receiveShadow=true;K.addMesh(pm);}
   for(let x=x0+40;x<=x1-40;x+=Math.max(120,(L-80)/6))[dB+12,dF-12].forEach(d=>K.rod('y',3.2,x,H+0.6,d,1.2,m.steel,12));
   K.box(x0+4,x1-4,0,0.8,dB+4,dF-4,m.seam);
   /* 4 ports: round black flange plate with 8 screws → stepped cone → collar with rolled end rings */
