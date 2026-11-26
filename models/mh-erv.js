@@ -101,8 +101,10 @@ function build(K,id){
     /* 型號牌移到電控箱白色標籤區（使用者指示） */});
   /* 維修門以螺絲固定（實品）：6 顆十字頭螺絲，拆卸時先轉開退出，門板再往外退出並漸隱 */
   const screws=[];[ax0+14,acx,ax1-14].forEach(x=>[ah0+12,ah1-12].forEach(h=>{const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+3));
-      const hd=new TH.Mesh(new TH.SphereGeometry(4.6,18,8,0,2*Math.PI,0,Math.PI/2),m.steel);hd.rotation.x=Math.PI/2;hd.scale.y=0.55;sg.add(hd);
-      const s1=new TH.Mesh(new TH.BoxGeometry(6.2,1.1,1.2),m.hole),s2=new TH.Mesh(new TH.BoxGeometry(1.1,6.2,1.2),m.hole);s1.position.z=s2.position.z=2.3;sg.add(s1,s2);
+      /* pan-head Phillips screw: low rounded head, cross RECESSED into the head (dark cross set into a flat top, with a shaded bevel) */
+      const prof=[[0.01,1.9],[2.6,1.9],[3.8,1.6],[4.5,1.0],[4.7,0.3],[4.7,0]].map(([r,z])=>new TH.Vector2(r,z)).reverse();
+      const hdm=new TH.Mesh(new TH.LatheGeometry(prof,28),m.steel);hdm.rotation.x=Math.PI/2;sg.add(hdm);
+      [[3.4,0.9],[0.9,3.4]].forEach(([a,b])=>{const ck=new TH.Mesh(new TH.BoxGeometry(a*2,b*2,1.6),m.hole);ck.position.z=1.15;sg.add(ck);});   // cross recess: top sits just below the head top (1.95)
       door.add(sg);screws.push(sg);}));
   door.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.userData.op=o.material.opacity;}});
   const doorMv={kind:'door',name:'維修門（螺絲固定）',g:door,screws,view:0.45,labels:[['in','裝回','鎖上螺絲'],['side','拆下','轉開螺絲・退出']]};
@@ -114,7 +116,7 @@ function build(K,id){
       K.box(acx-26,acx+26,H/2-7,H/2+7,cd1,cd1+8,m.ctrl,2);});                        // pull handle
   /* two PM2.5 filters lying flush on the two lower faces of the diamond core (斜貼芯體) */
   const fl=hd*Math.SQRT2*0.94,ft=18;
-  const filters=K.group(()=>[-1,1].forEach(sg=>{const off=hd/2+(ft/2+1.5)/Math.SQRT2,cx=acx+sg*off,cy=H/2-off,rz=sg*Math.PI/4;
+  const filters=K.group(()=>[-1,1].forEach(sg=>{const off=hd/2+(ft/2+1.5)/Math.SQRT2,cx=acx+sg*off,cy=H/2-off,rz=-sg*Math.PI/4;   // slab thickness along the face normal (1,-1)·sg → lies flat on the face
       const fm=new TH.Mesh(new TH.BoxGeometry(ft,fl,Dc-6),filMat());fm.position.set(K.cx(cx),cy,K.cz((cd0+cd1)/2-3));fm.rotation.z=rz;fm.castShadow=true;K.addMesh(fm);
       const cap=new TH.Mesh(new TH.BoxGeometry(ft+4,fl+4,5),m.ctrl);cap.position.set(K.cx(cx),cy,K.cz(cd1-2.5));cap.rotation.z=rz;K.addMesh(cap);
       const hdl=new TH.Mesh(new TH.BoxGeometry(8,26,8),m.ctrl);hdl.position.set(K.cx(cx+sg*7/Math.SQRT2),cy-7/Math.SQRT2,K.cz(cd1+4));hdl.rotation.z=rz;K.addMesh(hdl);}));
