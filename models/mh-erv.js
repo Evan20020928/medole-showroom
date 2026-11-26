@@ -89,6 +89,7 @@ function build(K,id){
   [cb.x0+0.3*cw,cb.x0+0.7*cw].forEach(x=>K.rod('y',6,x,ch0-6,dF+cb.dd*0.55,12,m.ctrl,16));                  // cable glands
   K.hvTri((cb.x0+cb.x1)/2,ch1-0.3*chh,fz+0.2,cw*0.5,'z+');
   K.box(cb.x0+0.2*cw,cb.x1-0.2*cw,ch0+0.11*chh,ch0+0.43*chh,fz,fz+0.6,m.label);   // 白色標籤區（內容先留白）
+  {const lw=0.6*cw-8,lh=Math.min(lw/4.4,0.32*chh-8);K.nameplate((cb.x0+cb.x1)/2,ch0+0.27*chh,fz+1.2,lh*4.4,lh,'z+',id,'全熱交換器 '+s.Q+' CMH');}   // 型號牌
   K.tag((cb.x0+cb.x1)/2,ch1+26,fz,[0,0,1],'CB','電控箱');
 
   /* ---------- 維修門 (MEDOLE panel): opens to service the PM2.5 filters and the heat-exchange core ---------- */
@@ -98,7 +99,7 @@ function build(K,id){
   const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
     [0.3,0.7].forEach(f=>K.box(ax0+6,ax0+22,ah0+f*(ah1-ah0)-10,ah0+f*(ah1-ah0)+10,dF+3,dF+9,m.steel));   // latch clips
     K.logo(ax0+(ax1-ax0)*0.3,ah1-34,dF+3.2,Math.min(190,(ax1-ax0)*0.5),'z+');
-    K.nameplate(ax0+(ax1-ax0)*0.64,ah0+40,dF+3.9,Math.min(150,(ax1-ax0)*0.42),40,'z+',id,'全熱交換器 '+s.Q+' CMH');});
+    /* 型號牌移到電控箱白色標籤區（使用者指示） */});
   const hinge=new TH.Group();hinge.position.set(0,ah0,K.cz(dF+3));door.parent.add(hinge);hinge.add(door);door.position.set(0,-ah0,-K.cz(dF+3));
   const doorMv={kind:'door',name:'維修門',g:hinge,angle:1.42,view:0.45,labels:[['in','關閉','—'],['side','打開','往下翻開']]};
   /* heat-exchange core: square prism standing on a corner (diamond in the side view), slides out +d */
