@@ -86,6 +86,7 @@ const mat={
   seam:new T.MeshStandardMaterial({color:0x0b0c0d,roughness:1}),
   ctrl:new T.MeshStandardMaterial({color:lin(new T.Color(0x1c1d20)),metalness:.15,roughness:.5}),   // 黑色電控箱
   label:new T.MeshStandardMaterial({color:lin(new T.Color(0xeeeeea)),roughness:.6}),
+  lid:new T.MeshStandardMaterial({color:lin(new T.Color(0x5e6266)),metalness:.1,roughness:.85,envMapIntensity:.6}),   // 保溫段頂板（霧面深灰）
   plastic:new T.MeshStandardMaterial({color:lin(new T.Color(0x121213)),metalness:0,roughness:.3,side:T.DoubleSide}),
   hole:new T.MeshStandardMaterial({color:0x000000,roughness:1,envMapIntensity:0,side:T.DoubleSide}),
   teal:new T.MeshStandardMaterial({color:lin(new T.Color(0x4a8285)),metalness:.02,roughness:.3,transparent:true,opacity:.72,depthWrite:true,side:T.DoubleSide}),   // 半透明（depthWrite on: stable while rotating）   // 新風風門：藍綠色塑膠（實品照片）

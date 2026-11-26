@@ -34,9 +34,9 @@ function tex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.heig
 function coreMat(){if(CORE_M)return CORE_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#e8e4d8';g.fillRect(0,0,W,H);
     for(let i=-H;i<W;i+=5){g.strokeStyle=i%10?'rgba(120,112,95,.35)':'rgba(90,84,70,.55)';g.lineWidth=1.4;g.beginPath();g.moveTo(i,0);g.lineTo(i+H,H);g.stroke();}});
   t.repeat.set(1/120,1/120);CORE_M=new TH.MeshStandardMaterial({map:t,roughness:.85,metalness:0});return CORE_M;}
-function boardMat(){if(BOARD_M)return BOARD_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#3d3f42';g.fillRect(0,0,W,H);
-    for(let i=0;i<5200;i++){const v=40+Math.random()*70|0;g.fillStyle='rgba('+v+','+v+','+(v+3)+','+(.35+Math.random()*.5)+')';g.fillRect(Math.random()*W,Math.random()*H,1+Math.random()*2.2,1+Math.random()*2.2);}});
-  t.repeat.set(2,1);BOARD_M=new TH.MeshStandardMaterial({map:t,roughness:.95,metalness:0});return BOARD_M;}
+function boardMat(){if(BOARD_M)return BOARD_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#232427';g.fillRect(0,0,W,H);
+    for(let i=0;i<5200;i++){const v=55+Math.random()*80|0;g.fillStyle='rgba('+v+','+v+','+(v+3)+','+(.35+Math.random()*.5)+')';g.fillRect(Math.random()*W,Math.random()*H,1+Math.random()*2.2,1+Math.random()*2.2);}});
+  t.repeat.set(2,1);BOARD_M=new TH.MeshStandardMaterial({map:t,roughness:.97,metalness:0,envMapIntensity:.5});return BOARD_M;}
 function filMat(){if(FIL_M)return FIL_M;const t=tex(256,64,(g,W,H)=>{for(let x=0;x<W;x+=16){const gr=g.createLinearGradient(x,0,x+16,0);gr.addColorStop(0,'#f4f4f1');gr.addColorStop(.5,'#d9dbd8');gr.addColorStop(1,'#f4f4f1');g.fillStyle=gr;g.fillRect(x,0,16,H);}});
   FIL_M=new TH.MeshStandardMaterial({map:t,roughness:.9,metalness:0});return FIL_M;}
 /* 法蘭＋接頭剖面 (r, z)：圓形法蘭盤 Rf → 錐形漸縮 Rc1 → 接頭 R，末端兩道捲邊（實品照片） */
@@ -49,11 +49,17 @@ function build(K,id){
   const x0=-L/2,x1=L/2,dB=-W/2,dF=W/2,ztop=H-H1,movers=[];
   /* body: galvanised steel box; one standing seam along the lid; screws along the lid edges */
   K.box(x0,x1,0,H,dB,dF,m.body,3);
-  /* 唯一一條板金接縫：橫跨寬度，距 EA/OA 端約 42%（實品照片） */
-  {const xs=x0+0.42*L;K.box(xs-4,xs+4,H,H+7,dB+6,dF-6,m.body2,1.5);K.box(xs-9,xs+9,H,H+0.6,dB+6,dF-6,m.body2);}
-  /* EA/OA end face (室外側): dark grey speckled insulation board, ducts come through it (實品照片) */
-  {const pm=new TH.Mesh(new TH.BoxGeometry(2,H-10,W-10),boardMat());pm.position.set(K.cx(x0-1),H/2,K.cz(0));pm.castShadow=pm.receiveShadow=true;K.addMesh(pm);}
-  for(let x=x0+40;x<=x1-40;x+=Math.max(120,(L-80)/6))[dB+12,dF-12].forEach(d=>K.rod('y',3.2,x,H+0.6,d,1.2,m.steel,12));
+  /* EA/OA (室外側) insulated section x0..xs (實品照片): dark speckled board on the end face, front and back;
+     its top is a separate darker matte grey panel; the single top seam runs across the width at xs */
+  const xs=x0+(small?192:0.26*L);
+  {const bd=(w,h,dpt,x,y,z)=>{const pm=new TH.Mesh(new TH.BoxGeometry(w,h,dpt),boardMat());pm.position.set(K.cx(x),y,K.cz(z));pm.castShadow=pm.receiveShadow=true;K.addMesh(pm);};
+   bd(2,H-8,W-8,x0-1,H/2,0);                                   // end face
+   bd(xs-x0-4,H-8,2,(x0+xs)/2,H/2,dF+1);                       // front
+   bd(xs-x0-4,H-8,2,(x0+xs)/2,H/2,dB-1);                       // back
+   K.box(x0,xs,H,H+1.2,dB,dF,m.lid,1);                         // top panel (matte grey)
+   K.box(xs-4,xs+4,H,H+6,dB+4,dF-4,m.body2,1.5);               // seam
+   K.box((x0+xs)/2-22,(x0+xs)/2+22,H*0.32-9,H*0.32+9,dF+2,dF+12,m.ctrl,2);}   // black clip on the board
+  for(let x=xs+40;x<=x1-40;x+=Math.max(120,(x1-xs-80)/5))[dB+12,dF-12].forEach(d=>K.rod('y',3.2,x,H+0.6,d,1.2,m.steel,12));
   K.box(x0+4,x1-4,0,0.8,dB+4,dF-4,m.seam);
   /* 4 ports: round black flange plate with 8 screws → stepped cone → collar with rolled end rings */
   const cp=collarProfile(N,C,H,W2,W);
@@ -85,7 +91,7 @@ function build(K,id){
   K.tag((cb.x0+cb.x1)/2,ch1+26,fz,[0,0,1],'CB','電控箱');
 
   /* ---------- 維修門 (MEDOLE panel): opens to service the PM2.5 filters and the heat-exchange core ---------- */
-  const ax0=small?x0+192:x0+70,ax1=small?x0+524:cb.x0-40,ah0=14,ah1=H-14,acx=(ax0+ax1)/2;
+  const ax0=xs+16,ax1=small?x0+524:cb.x0-40,ah0=14,ah1=H-14,acx=(ax0+ax1)/2;
   [ax0-14,ax1].forEach(x=>K.box(x,x+14,8,H-8,dF,dF+6,m.body2,2));                 // door frame channels
   K.box(ax0+2,ax1-2,ah0+2,ah1-2,dF+0.2,dF+0.5,m.hole);                            // dark opening behind the door
   const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
