@@ -167,7 +167,7 @@ F.C=function(K,P,v){
   F.basePlates(K,{xL:[0,B.x0],xR:[B.x1,P.L],d:P.plates.d,w:P.plates.w,slot:P.plates.slot});
   /* front-mounted control box (電氣蓋) */
   const C=P.ctrl;K.box(C.x0,C.x1,C.h0,C.h1,B.d1,B.d1+C.dd,m.body2,3);
-  {const W=C.x1-C.x0,Hc=C.h1-C.h0,w=Math.min(W*0.3,Hc*0.2);K.warnLabel(C.x0+W*0.62,C.h0+Hc*0.62,B.d1+C.dd,w,w*2,'z+');}   // 電源警告貼紙
+  {const Hc=C.h1-C.h0,w=Math.min(C.dd*0.62,Hc*0.2);K.warnLabel(C.x0,C.h0+Hc*0.7,B.d1+C.dd/2,w,w*2,'x-');}   // 電源警告貼紙：電器盒側面（端面方向，實品照片）
   [[C.x0+12,C.h0+12],[C.x1-12,C.h0+12],[C.x0+12,C.h1-12],[C.x1-12,C.h1-12]].forEach(([x,h])=>K.screw(x,h,B.d1+C.dd,1,3.5));
   /* supply: boxes with flat-oval outlets */
   let sTip=B.d1,sTop=0;
