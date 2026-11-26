@@ -26,8 +26,8 @@ function build(K,id){
   const x0=-L/2,x1=L/2,dB=-W/2,dF=W/2,ztop=H-H1;
   /* body: galvanised steel box, top lid seams, end-cap seams */
   K.box(x0,x1,0,H,dB,dF,m.body,3);
-  [-0.2,0.2].forEach(f=>K.box(x0+8,x1-8,H,H+0.8,f*W-1.2,f*W+1.2,m.seam));
-  [x0+58,x1-58].forEach(x=>K.box(x-1.2,x+1.2,H,H+0.8,dB+6,dF-6,m.seam));
+  /* single sheet-metal standing seam along the length on the lid (product photo) */
+  {const sd=-0.1*W;K.box(x0+6,x1-6,H,H+7,sd-5,sd+5,m.body2,1.5);K.box(x0+6,x1-6,H,H+0.6,sd-9,sd+9,m.body2);}
   K.box(x0+4,x1-4,0,0.8,dB+4,dF-4,m.seam);
   /* 4 duct collars (black) with square flange plates; RA/SA on +x, EA/OA on −x; +d = front (電控箱側) */
   const cp=collarProfile(N,C,H,W2,W),P=Math.min(cp.R0*2+18,H-6);
@@ -56,8 +56,8 @@ function build(K,id){
   const acx0=small?x0+192:x0+70,acx1=small?x0+524:cb.x0-40;
   K.box(acx0,acx1,20,H-20,dF,dF+3,m.body2,2);
   [acx0+28,acx1-28].forEach(x=>K.box(x-14,x+14,H/2-5,H/2+5,dF+3,dF+9,m.ctrl,2));   // access-cover latches
-  K.logo(acx0+(acx1-acx0)*0.27,H-42,dF+3,Math.min(150,(acx1-acx0)*0.42),'z+');
-  K.nameplate(acx0+(acx1-acx0)*0.62,52,dF+3,Math.min(150,(acx1-acx0)*0.42),40,'z+',id,'全熱交換器 '+s.Q+' CMH');
+  K.logo(acx0+(acx1-acx0)*0.3,H-44,dF+3.2,Math.min(180,(acx1-acx0)*0.5),'z+');
+  K.nameplate(acx0+(acx1-acx0)*0.62,52,dF+3.9,Math.min(150,(acx1-acx0)*0.42),40,'z+',id,'全熱交換器 '+s.Q+' CMH');
   K.tag((cb.x0+cb.x1)/2,ch1+26,dF+cb.dd,[0,0,1],'CB','電控箱');
   /* dimensions: overall length on the front, hanger spacing on the back, width on the right, height on the left */
   const dFr=dF+cb.dd;

@@ -66,7 +66,21 @@ const FINISH={
   white:null
 };
 FINISH.white=FINISH.ivory;   // 白色機種實際也是偏米色的白
-FINISH.galv={body:0xc6cbcf,body2:0xb3b9bd,metal:.6,rough:.32,env:1.05};   // 鍍鋅鋼板（全熱交換器，實品照片）
+FINISH.galv={body:0xa7adb2,body2:0x9da3a8,metal:.72,rough:.36,env:1.1,spangle:true};   // 鍍鋅鋼板（全熱交換器，實品照片）：偏灰＋鋅花
+/* galvanised spangle (鋅花): jittered-grid Voronoi crystals, each with its own brightness and a directional sheen; used as colour + roughness map.
+   Box UVs run 1 tile per 400 mm, so a 40×40 grid gives ~10 mm crystals; low contrast like real hot-dip galvanised sheet. */
+let SPANGLE=null,LOGO_TEX=null;
+function spangleTex(){if(SPANGLE)return SPANGLE;const N=40,S=512,cs=S/N,seeds=[];
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=Math.random()*PI;seeds.push({x:(i+.1+Math.random()*.8)*cs,y:(j+.1+Math.random()*.8)*cs,v:.93+Math.random()*.07,ca:Math.cos(a),sa:Math.sin(a),k:Math.random()});}
+  const at=(i,j)=>seeds[((j+N)%N)*N+((i+N)%N)];
+  const mk=(rough)=>canvasTex(S,S,(g)=>{const d=g.createImageData(S,S);
+    for(let y=0;y<S;y++)for(let x=0;x<S;x++){const ci=Math.floor(x/cs),cj=Math.floor(y/cs);let best=1e9,sd=null,sx=0,sy=0;
+      for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){const q=at(ci+di,cj+dj),qx=q.x+(ci+di-((ci+di+N)%N))*cs,qy=q.y+(cj+dj-((cj+dj+N)%N))*cs,dd=(x-qx)**2+(y-qy)**2;if(dd<best){best=dd;sd=q;sx=qx;sy=qy;}}
+      const t=((x-sx)*sd.ca+(y-sy)*sd.sa)/cs,sheen=0.018*Math.sin(t*5+sd.k*6),n=(Math.random()-.5)*0.025;
+      const v=rough?Math.max(0,Math.min(255,(0.62-0.5*(sd.v-0.93)*3+sheen*2+n)*255)):Math.max(0,Math.min(255,(sd.v+sheen+n)*255));
+      const k=(y*S+x)*4;d.data[k]=d.data[k+1]=d.data[k+2]=v;d.data[k+3]=255;}
+    g.putImageData(d,0,0);},!rough);
+  const c=mk(false),r=mk(true);[c,r].forEach(t=>{t.wrapS=t.wrapT=T.RepeatWrapping;});SPANGLE={c,r};return SPANGLE;}
 const mat={
   body:new T.MeshStandardMaterial(),body2:new T.MeshStandardMaterial(),
   seam:new T.MeshStandardMaterial({color:0x0b0c0d,roughness:1}),
@@ -96,7 +110,7 @@ const mat={
 function applyFinish(name){
   const f=FINISH[name]||FINISH.black;
   [['body',f.body],['body2',f.body2]].forEach(([k,c])=>{const m=mat[k];m.color.set(c);lin(m.color);m.metalness=f.metal;m.roughness=f.rough;
-    m.roughnessMap=null;m.bumpMap=null;m.envMapIntensity=f.env;m.needsUpdate=true;});
+    const sp=f.spangle?spangleTex():null;m.map=sp?sp.c:null;m.roughnessMap=sp?sp.r:null;m.bumpMap=null;m.envMapIntensity=f.env;m.needsUpdate=true;});
 }
 
 /* ---------- geometry kit (plan mm: x along length, d from back to front, h up) ---------- */
@@ -343,10 +357,9 @@ function makeKit(group,center){
         g.beginPath();g.moveTo(W/2+12,88);g.lineTo(W/2-22,148);g.lineTo(W/2+2,148);g.lineTo(W/2-14,192);g.lineTo(W/2+26,130);g.lineTo(W/2+2,130);g.lineTo(W/2+20,88);g.closePath();g.fillStyle='#111';g.fill();});
       return K.decal(x,h,d,w,hh,dir,tex);},
     /* 綠色 MEDOLE 標誌 */
-    logo(x,h,d,w,dir){const tex=canvasTex(512,128,(g,W,H)=>{g.clearRect(0,0,W,H);g.fillStyle='#1f9a4a';
-        g.beginPath();g.arc(58,64,40,0.6,2*PI-0.6);g.lineWidth=14;g.strokeStyle='#1f9a4a';g.stroke();
-        g.font='italic 800 78px Arial,"Noto Sans",sans-serif';g.textBaseline='middle';g.fillText('MEDOLE',112,68);});
-      return K.decal(x,h,d,w,w/4,dir,tex);},
+    /* 米多力 MEDOLE 標誌：官方圖檔 icons/medole-logo.png（去背，351×71） */
+    logo(x,h,d,w,dir){if(!LOGO_TEX){LOGO_TEX=new T.TextureLoader().load('icons/medole-logo.png');LOGO_TEX.encoding=T.sRGBEncoding;LOGO_TEX.anisotropy=8;}
+      return K.decal(x,h,d,w,w*71/351,dir,LOGO_TEX);},
     nameplate(x,h,d,w,hh,dir,title,sub){
       const tex=canvasTex(1024,232,(g,W,H)=>{g.fillStyle='#f6f8f8';g.fillRect(0,0,W,H);g.fillStyle='#0e6f78';g.fillRect(0,0,22,H);
         g.fillStyle='#132022';g.font='800 100px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(title,62,H*0.42);
