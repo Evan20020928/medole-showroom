@@ -307,9 +307,9 @@ function makeKit(group,center){
       return mm;},
     /* 電源警告貼紙 (product photos): yellow high-voltage triangle, red 「電源 220V」, then 「L ⏚ N」; dir as nameplate ('x-' = facing −x, 'z+' = facing +d) */
     warnLabel(x,h,d,w,hh,dir){
-      const tex=canvasTex(240,480,(g,W,H)=>{
+      const c=mat.body.color,dark=c.r+c.g+c.b<0.6,ink=dark?'#f2f2f2':'#111';   // no white backing: N / ⏚ printed straight on the panel, light ink on black units
+      const tex=canvasTex(240,480,(g,W,H)=>{g.clearRect(0,0,W,H);
         const rr=(x0,y0,x1,y1,r,col)=>{g.fillStyle=col;g.beginPath();g.moveTo(x0+r,y0);g.arcTo(x1,y0,x1,y1,r);g.arcTo(x1,y1,x0,y1,r);g.arcTo(x0,y1,x0,y0,r);g.arcTo(x0,y0,x1,y0,r);g.fill();};
-        rr(0,0,W,H,14,'#f4f4f2');
         // high-voltage triangle
         g.beginPath();g.moveTo(W/2,18);g.lineTo(W-34,152);g.lineTo(34,152);g.closePath();g.fillStyle='#f6c700';g.fill();g.lineWidth=9;g.strokeStyle='#111';g.lineJoin='round';g.stroke();
         g.beginPath();g.moveTo(W/2+10,58);g.lineTo(W/2-16,104);g.lineTo(W/2+2,104);g.lineTo(W/2-12,140);g.lineTo(W/2+20,92);g.lineTo(W/2+2,92);g.lineTo(W/2+16,58);g.closePath();g.fillStyle='#111';g.fill();
@@ -319,10 +319,10 @@ function makeKit(group,center){
         g.font='900 62px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';g.fillText('電源',W/2,214);
         g.font='800 58px "Noto Sans TC",Arial,sans-serif';g.fillText('220 V',W/2,292);
         // L ⏚ N
-        g.font='800 66px Arial,"Noto Sans TC",sans-serif';g.fillStyle='#d7261e';g.fillText('L',46,410);g.fillStyle='#111';g.fillText('N',W-46,410);
-        const cx=W/2,cy=410;g.strokeStyle='#1d8a3a';g.lineWidth=7;g.beginPath();g.arc(cx,cy,30,0,2*PI);g.stroke();
+        g.font='800 66px Arial,"Noto Sans TC",sans-serif';g.fillStyle='#e0261e';g.fillText('L',46,410);g.fillStyle=ink;g.fillText('N',W-46,410);
+        const cx=W/2,cy=410;g.strokeStyle=dark?'#3fbf63':'#1d8a3a';g.lineWidth=7;g.beginPath();g.arc(cx,cy,30,0,2*PI);g.stroke();
         g.lineWidth=6;g.beginPath();g.moveTo(cx,cy-20);g.lineTo(cx,cy+2);g.moveTo(cx-17,cy+2);g.lineTo(cx+17,cy+2);g.moveTo(cx-11,cy+10);g.lineTo(cx+11,cy+10);g.moveTo(cx-5,cy+18);g.lineTo(cx+5,cy+18);g.stroke();});
-      const p=new T.Mesh(new T.PlaneGeometry(w,hh),new T.MeshStandardMaterial({map:tex,roughness:.5,transparent:true}));
+      const p=new T.Mesh(new T.PlaneGeometry(w,hh),new T.MeshStandardMaterial({map:tex,roughness:.5,transparent:true,alphaTest:.04,depthWrite:false}));
       let px=x,pd=d;
       if(dir==='x-'){p.rotation.y=-PI/2;px-=0.8;}else if(dir==='x+'){p.rotation.y=PI/2;px+=0.8;}else if(dir==='z-'){p.rotation.y=PI;pd-=0.8;}else pd+=0.8;
       p.position.set(CX(px),h,CZ(pd));return add(p);
