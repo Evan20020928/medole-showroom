@@ -558,7 +558,8 @@ function specRows(id,def){
   if(catOf(id)==='erv'){
     r('外型尺寸 L×W×H',s.L+' × '+s.W+' × '+s.H+' mm');
     r('風量',s.cmh+' CMH');
-    r('風管接頭',s.N?'Φ'+s.N+' mm × 4（RA／SA／EA／OA）':'','txt');
+    r('出回風管徑',s.N?s.inch+'"（接頭外徑 Φ'+s.N+' mm）× 4':'','txt');
+    r('風口',s.N?'RA 回風／SA 送風／EA 排風／OA 新風':'','txt');
     r('接頭長度 C',s.C+' mm');
     r('吊架孔距 L1 × W1',s.L1+' × '+s.W1+' mm');
     r('吊架高度 H1',s.H1+' mm（距機頂）');
@@ -756,7 +757,7 @@ function renderPicker(){
     return '<li class="pk-group"><h3>'+esc(title)+'</h3><ul>'+items.map(id=>{const s=DATA.specs[id]||{},def=REG[id];
       const n=def?(def.variants&&!def.variants.fixed?variantKeys(def).length+' 種組合':'標配'):'建模中';
       return '<li><button type="button" class="pk" data-id="'+esc(id)+'"><span class="pk-sw '+esc(def?def.finish:'')+'" aria-hidden="true"></span><b>'+esc(id)+'</b>'+
-        '<span class="pk-meta">'+(catOf(id)==='erv'?esc(s.cmh)+' CMH・Φ'+esc(s.duct):esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH')+'</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
+        '<span class="pk-meta">'+(catOf(id)==='erv'?esc(s.cmh)+' CMH・'+esc(s.inch)+'" 風管':esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH')+'</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
   document.querySelectorAll('#pickerList .pk').forEach(b=>b.onclick=()=>{
     if(picking){const id=b.dataset.id;if(picking.has(id))picking.delete(id);else picking.add(id);syncPicking();return;}
     closePicker();select(b.dataset.id,null,true);});

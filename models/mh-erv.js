@@ -24,7 +24,8 @@ const CAT={
 };
 const DATA=window.MEDOLE_DATA=window.MEDOLE_DATA||{specs:{}};
 Object.keys(SP).forEach(id=>{const s=SP[id];
-  DATA.specs[id]={cat:'erv',...CAT[id],cmh:String(s.Q),duct:String(s.N),size:s.L+'*'+s.W+'*'+s.H,L:s.L,L1:s.L1,W:s.W,W1:s.W1,W2:s.W2,H:s.H,H1:s.H1,C:s.C,G:s.G,N:s.N};});
+  const inch=s.N<170?6:s.N<220?8:10;   // 接頭外徑 Φ144/194/242 mm → 接 6"/8"/10" 風管
+  DATA.specs[id]={cat:'erv',...CAT[id],inch,cmh:String(s.Q),duct:String(s.N),size:s.L+'*'+s.W+'*'+s.H,L:s.L,L1:s.L1,W:s.W,W1:s.W1,W2:s.W2,H:s.H,H1:s.H1,C:s.C,G:s.G,N:s.N};});
 
 const T_BRK=2.5,B_BRK=40,LEG=40,HOLE_R=6;
 let TH=null;   // resolved at build time (three.js loads after the model files)
@@ -68,7 +69,7 @@ function build(K,id){
     K.lathe('x',sx,fx,hc,dd,cp.prof,m.plastic,96);
     for(let i=0;i<8;i++){const a=(i+0.5)*Math.PI/4,r=cp.Rf-8;K.rod('x',3,fx+sx*4.3,hc+r*Math.sin(a),dd+r*Math.cos(a),1.8,m.plastic,12);}
     K.disc('x',cp.rin-0.5,fx+sx*5,hc,dd,m.hole);
-    K.tag(fx+sx*(C+3),hc+cp.Rf+22,dd,[sx,0,0],code,name);});
+    K.tag(fx+sx*(C+3),hc+cp.Rf+22,dd,[sx,0,0],code,name,(N<170?6:N<220?8:10)+'"（Φ'+N+'）');});
   /* hanger brackets ×4 (galvanised): D2 on the length ends, D3~D13 on the width sides; plate with Φ12 hole + up-stand */
   /* 吊耳：吊孔＋往最前端的窄開口（T 形：橫向圓頭長孔＋往前端的窄開口，實品照片），牙條可從前端滑入 */
   const ear=(px0,px1,pd0,pd1,hx,hd,lx0,lx1,ld0,ld1,dir)=>{K.plateCut(px0,px1,pd0,pd1,ztop-T_BRK,ztop,[{x:hx,d:hd,r:HOLE_R,nw:3.5,lr:0,ha:12,rh:5.5,dir}],m.body2);K.box(lx0,lx1,ztop-LEG,ztop-T_BRK,ld0,ld1,m.body2);};
@@ -130,6 +131,7 @@ function build(K,id){
 
   /* dimensions: overall length on the front, hanger spacing on the back, width on the right, height on the left */
   K.dim([x0,0,fz],[x1,0,fz],[0,0,90],String(L));
+  K.dim([x0-C,0,fz],[x1+C,0,fz],[0,0,180],String(L+2*C));   // 含法蘭接頭總長 L+2C
   K.dim([-L1/2,ztop,-W1/2],[L1/2,ztop,-W1/2],[0,0,-(small?60:G+60)],String(L1));
   K.dim([x1+C,0,dB],[x1+C,0,dF],[90,0,0],String(W));
   K.dim([x0,0,dF],[x0,H,dF],[0,0,120],String(H));
