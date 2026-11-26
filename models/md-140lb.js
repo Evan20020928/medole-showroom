@@ -9,7 +9,7 @@
     K.box(B.x0,B.x1,9.5,H,B.d0,B.d1,m.body,5);K.box(B.x0+6,B.x1-6,0,9.5,B.d0+6,B.d1-6,m.seam);
     K.box(B.x0,B.x1,9.5,11,471,473,m.seam);
     [[256,267],[363,373]].forEach(([a,b])=>K.ridge(B.x0+2,B.x1-2,a,b,H,5,m.body));
-    K.box(30,96,67,H,222,404,m.body2,3);K.box(0,30,67,168,222,288,m.body);
+    K.box(30,96,67,H,222,404,m.body2,3);K.box(0,30,67,168,222,288,m.body);K.warnLabel(0,117.5,255.0,44.4,88.8,'x-');   /* 電源警告貼紙 */
     F.ears(K,{faceL:B.x0,tipL:50,faceR:B.x1,tipR:1078,d:[182,442],w:56,h:51,x:[68,1056]});
     const dr=F.drain(K,{axis:'z',x:130.5,d:B.d0,h:90,len:29});
     K.box(289,1034,75,385,93,B.d0,m.body2,4);

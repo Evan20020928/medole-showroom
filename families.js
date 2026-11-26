@@ -14,6 +14,7 @@ F.A=function(K,P,v){
   /* control box, gland, lamp */
   const C=P.ctrl;K.box(C.x0,C.x1,P.base,H,C.d0,C.d1,m.body2,3);
   K.box(C.gx0,C.x0,C.gh0,C.gh1,C.d0,C.gd1,m.body);
+  {const gw=C.gd1-C.d0,gh=C.gh1-C.gh0,w=Math.min(gw*0.72,gh*0.44);K.warnLabel(C.gx0,(C.gh0+C.gh1)/2,(C.d0+C.gd1)/2,w,w*2,'x-');}   // 電源警告貼紙
   /* hanger brackets (ear at holes.h) */
   const HB=P.holes;
   HB.d.forEach(d=>{const n={x:-18,d,r:6,dir:'-x'};K.bracket(0,P.brL,d,P.brW,HB.h,28,null,[n]);});   // 長條開口：由機體側一路開到吊耳外緣（實品照片）
@@ -166,6 +167,7 @@ F.C=function(K,P,v){
   F.basePlates(K,{xL:[0,B.x0],xR:[B.x1,P.L],d:P.plates.d,w:P.plates.w,slot:P.plates.slot});
   /* front-mounted control box (電氣蓋) */
   const C=P.ctrl;K.box(C.x0,C.x1,C.h0,C.h1,B.d1,B.d1+C.dd,m.body2,3);
+  {const W=C.x1-C.x0,Hc=C.h1-C.h0,w=Math.min(W*0.3,Hc*0.2);K.warnLabel(C.x0+W*0.62,C.h0+Hc*0.62,B.d1+C.dd,w,w*2,'z+');}   // 電源警告貼紙
   [[C.x0+12,C.h0+12],[C.x1-12,C.h0+12],[C.x0+12,C.h1-12],[C.x1-12,C.h1-12]].forEach(([x,h])=>K.screw(x,h,B.d1+C.dd,1,3.5));
   /* supply: boxes with flat-oval outlets */
   let sTip=B.d1,sTop=0;

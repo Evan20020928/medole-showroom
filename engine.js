@@ -305,6 +305,28 @@ function makeKit(group,center){
       const mm=add(shade(new T.Mesh(g,mat.ring)));
       if(o.axis==='x')mm.position.set(CX(o.at),o.c-o.width/2,CZ(o.d));else mm.position.set(CX(o.c-o.width/2),o.at,CZ(o.d));
       return mm;},
+    /* 電源警告貼紙 (product photos): yellow high-voltage triangle, red 「電源 220V」, then 「L ⏚ N」; dir as nameplate ('x-' = facing −x, 'z+' = facing +d) */
+    warnLabel(x,h,d,w,hh,dir){
+      const tex=canvasTex(240,480,(g,W,H)=>{
+        const rr=(x0,y0,x1,y1,r,col)=>{g.fillStyle=col;g.beginPath();g.moveTo(x0+r,y0);g.arcTo(x1,y0,x1,y1,r);g.arcTo(x1,y1,x0,y1,r);g.arcTo(x0,y1,x0,y0,r);g.arcTo(x0,y0,x1,y0,r);g.fill();};
+        rr(0,0,W,H,14,'#f4f4f2');
+        // high-voltage triangle
+        g.beginPath();g.moveTo(W/2,18);g.lineTo(W-34,152);g.lineTo(34,152);g.closePath();g.fillStyle='#f6c700';g.fill();g.lineWidth=9;g.strokeStyle='#111';g.lineJoin='round';g.stroke();
+        g.beginPath();g.moveTo(W/2+10,58);g.lineTo(W/2-16,104);g.lineTo(W/2+2,104);g.lineTo(W/2-12,140);g.lineTo(W/2+20,92);g.lineTo(W/2+2,92);g.lineTo(W/2+16,58);g.closePath();g.fillStyle='#111';g.fill();
+        // red block: 電源 220V
+        rr(14,170,W-14,338,10,'#d7261e');
+        g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';
+        g.font='900 62px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';g.fillText('電源',W/2,214);
+        g.font='800 58px "Noto Sans TC",Arial,sans-serif';g.fillText('220 V',W/2,292);
+        // L ⏚ N
+        g.font='800 66px Arial,"Noto Sans TC",sans-serif';g.fillStyle='#d7261e';g.fillText('L',46,410);g.fillStyle='#111';g.fillText('N',W-46,410);
+        const cx=W/2,cy=410;g.strokeStyle='#1d8a3a';g.lineWidth=7;g.beginPath();g.arc(cx,cy,30,0,2*PI);g.stroke();
+        g.lineWidth=6;g.beginPath();g.moveTo(cx,cy-20);g.lineTo(cx,cy+2);g.moveTo(cx-17,cy+2);g.lineTo(cx+17,cy+2);g.moveTo(cx-11,cy+10);g.lineTo(cx+11,cy+10);g.moveTo(cx-5,cy+18);g.lineTo(cx+5,cy+18);g.stroke();});
+      const p=new T.Mesh(new T.PlaneGeometry(w,hh),new T.MeshStandardMaterial({map:tex,roughness:.5,transparent:true}));
+      let px=x,pd=d;
+      if(dir==='x-'){p.rotation.y=-PI/2;px-=0.8;}else if(dir==='x+'){p.rotation.y=PI/2;px+=0.8;}else if(dir==='z-'){p.rotation.y=PI;pd-=0.8;}else pd+=0.8;
+      p.position.set(CX(px),h,CZ(pd));return add(p);
+    },
     nameplate(x,h,d,w,hh,dir,title,sub){
       const tex=canvasTex(1024,232,(g,W,H)=>{g.fillStyle='#f6f8f8';g.fillRect(0,0,W,H);g.fillStyle='#0e6f78';g.fillRect(0,0,22,H);
         g.fillStyle='#132022';g.font='800 100px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(title,62,H*0.42);

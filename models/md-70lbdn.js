@@ -23,7 +23,7 @@
 
     /* control box + gland + lamp (left end) */
     K.box(29.5,96,9.5,310,227.7,406.5,m.body2,3);
-    K.box(0,29.5,17,120,227.7,291.7,m.body);
+    K.box(0,29.5,17,120,227.7,291.7,m.body);K.warnLabel(0,68.5,259.7,45.3,90.6,'x-');   /* 電源警告貼紙 */
 
     /* hanger brackets: holes 982 x 250, ear top at h=45.
        Fan-section end: one continuous bracket along the depth with slotted holes (product photo);
