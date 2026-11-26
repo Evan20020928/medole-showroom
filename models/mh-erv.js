@@ -58,7 +58,7 @@ function build(K,id){
    bd(xs-x0-4,H-8,2,(x0+xs)/2,H/2,dB-1);                       // back
    K.box(x0,xs,H,H+1.2,dB,dF,m.lid,1);                         // top panel (matte grey)
    K.box(xs-4,xs+4,H,H+6,dB+4,dF-4,m.body2,1.5);               // seam
-   K.box((x0+xs)/2-22,(x0+xs)/2+22,H*0.32-9,H*0.32+9,dF+2,dF+12,m.ctrl,2);}   // black clip on the board
+}
   for(let x=xs+40;x<=x1-40;x+=Math.max(120,(x1-xs-80)/5))[dB+12,dF-12].forEach(d=>K.rod('y',3.2,x,H+0.6,d,1.2,m.steel,12));
   K.box(x0+4,x1-4,0,0.8,dB+4,dF-4,m.seam);
   /* 4 ports: round black flange plate with 8 screws → stepped cone → collar with rolled end rings */
@@ -85,7 +85,7 @@ function build(K,id){
   K.box(cb.x0+10,cb.x1-10,ch1-16,ch1,dF+10,fz-8,m.ctrl,4);                        // stepped top cap
   [0.06,0.15,0.85,0.94].forEach(f=>{const x=cb.x0+f*cw;K.box(x-3.5,x+3.5,ch0+6,ch1-20,fz,fz+3,m.ctrl);});   // vertical ribs
   [ch0+10,ch1-26].forEach(h=>K.box(cb.x0+0.2*cw,cb.x1-0.2*cw,h-3,h+3,fz,fz+2.5,m.ctrl));                    // horizontal ribs
-  [0.3,0.7].forEach(f=>{const h=ch0+f*chh;K.box(cb.x1,cb.x1+16,h-11,h+11,dF+cb.dd*0.3,dF+cb.dd*0.62,m.body2);K.box(cb.x1+13,cb.x1+16,h-11,h+11,dF+cb.dd*0.62,dF+cb.dd*0.85,m.body2);});   // side hook clips
+  /* side hook clips removed (使用者指示) */
   [cb.x0+0.3*cw,cb.x0+0.7*cw].forEach(x=>K.rod('y',6,x,ch0-6,dF+cb.dd*0.55,12,m.ctrl,16));                  // cable glands
   K.hvTri((cb.x0+cb.x1)/2,ch1-0.3*chh,fz+0.2,cw*0.5,'z+');
   K.box(cb.x0+0.2*cw,cb.x1-0.2*cw,ch0+0.11*chh,ch0+0.43*chh,fz,fz+0.6,m.label);   // 白色標籤區（內容先留白）
@@ -99,8 +99,8 @@ function build(K,id){
   const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
     K.logo(ax0+(ax1-ax0)*0.3,ah1-34,dF+3.2,Math.min(190,(ax1-ax0)*0.5),'z+');
     /* 型號牌移到電控箱白色標籤區（使用者指示） */});
-  /* 維修門以螺絲固定（實品）：6 顆十字頭螺絲，拆卸時先轉開退出，門板再往外退出並漸隱 */
-  const screws=[];[ax0+14,acx,ax1-14].forEach(x=>[ah0+12,ah1-12].forEach(h=>{const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+3));
+  /* 維修門以螺絲固定（實品）：四角 4 顆十字頭螺絲，拆卸時先轉開退出，門板再往外退出並漸隱 */
+  const screws=[];[ax0+7,ax1-7].forEach(x=>[ah0+7,ah1-7].forEach(h=>{/* 4 顆，四個角 */const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+3));
       /* pan-head Phillips screw: low rounded head, cross RECESSED into the head (dark cross set into a flat top, with a shaded bevel) */
       const prof=[[0.01,1.9],[2.6,1.9],[3.8,1.6],[4.5,1.0],[4.7,0.3],[4.7,0]].map(([r,z])=>new TH.Vector2(r,z)).reverse();
       const hdm=new TH.Mesh(new TH.LatheGeometry(prof,28),m.steel);hdm.rotation.x=Math.PI/2;sg.add(hdm);
