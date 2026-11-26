@@ -250,7 +250,11 @@ function makeKit(group,center){
       const nk=(n,e)=>{const w=Math.min(n.nw||n.r,n.r),a=Math.asin(w/n.r)*180/PI;return {w,a0:e-a,sw:360-2*a};};
       /* n.lr set: head = rectangle (width 2r, length lr) ending in a semicircle on the inner side, then a neck (half-width nw) out to the edge.
          s = perpendicular on the 'before' side, u = outward toward the edge, L = centre-to-edge distance */
-      const slotHead=(n,s,u,L)=>{const w=Math.min(n.nw||n.r,n.r),r=n.r,c=[n.x,n.d],pt=(a,b)=>[c[0]+u[0]*a+s[0]*b,c[1]+u[1]*a+s[1]*b];
+      /* n.ha set: T-shaped cut = head slot lying ACROSS the neck (half-length ha, radius rh, rounded ends) + neck (half-width nw) to the edge */
+      const slotT=(n,s,u,L)=>{const w=n.nw,rh=n.rh,ap=n.ha-rh,c=[n.x,n.d],pt=(a,b)=>[c[0]+u[0]*a+s[0]*b,c[1]+u[1]*a+s[1]*b];
+        const end=(sc,t0)=>{for(let i=0;i<=16;i++){const t=t0+PI*i/16;P.push([c[0]+s[0]*sc+rh*(Math.cos(t)*u[0]+Math.sin(t)*s[0]),c[1]+s[1]*sc+rh*(Math.cos(t)*u[1]+Math.sin(t)*s[1])]);}};
+        P.push(pt(L,w),pt(rh,w));end(ap,0);end(-ap,PI);P.push(pt(rh,-w),pt(L,-w));};
+      const slotHead=(n,s,u,L)=>{if(n.ha!=null)return slotT(n,s,u,L);const w=Math.min(n.nw||n.r,n.r),r=n.r,c=[n.x,n.d],pt=(a,b)=>[c[0]+u[0]*a+s[0]*b,c[1]+u[1]*a+s[1]*b];
         P.push(pt(L,w),pt(n.lr,w),pt(n.lr,r),pt(0,r));
         for(let i=1;i<16;i++){const t=PI*i/16;P.push([c[0]+r*(Math.cos(t)*s[0]-Math.sin(t)*u[0]),c[1]+r*(Math.cos(t)*s[1]-Math.sin(t)*u[1])]);}
         P.push(pt(0,-r),pt(n.lr,-r),pt(n.lr,-w),pt(L,-w));};
