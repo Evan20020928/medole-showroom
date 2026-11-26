@@ -17,51 +17,85 @@ Object.keys(SP).forEach(id=>{const s=SP[id];
   DATA.specs[id]={cat:'erv',cmh:String(s.Q),duct:String(s.N),size:s.L+'*'+s.W+'*'+s.H,L:s.L,L1:s.L1,W:s.W,W1:s.W1,W2:s.W2,H:s.H,H1:s.H1,C:s.C,G:s.G,N:s.N};});
 
 const T_BRK=2.5,B_BRK=40,LEG=40,HOLE_R=6;
-/* 接頭剖面 (r, z)：喇叭口根部 R0 → 接頭外徑 R，長度 C（同 model.py collar_profile） */
-function collarProfile(N,C,H,W2,W){const R=N/2,rin=R-2,d0=Math.min(1.45*N,H-6,W2-10,W-W2-10),R0=d0/2,z1=0.15*C,z2=0.40*C,r1=R+(R0-R)*0.30;
-  return {R,rin,R0,prof:[[rin,0],[R0,0],[r1,z1],[R,z2],[R,C],[rin,C],[rin,0]]};}
+let TH=null;   // resolved at build time (three.js loads after the model files)
+/* textures made once: heat-exchange core (stacked plates, fine diagonal layer lines) and white PM2.5 pleats */
+let CORE_M=null,FIL_M=null;
+function tex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new TH.CanvasTexture(c);t.encoding=TH.sRGBEncoding;t.wrapS=t.wrapT=TH.RepeatWrapping;t.anisotropy=8;return t;}
+function coreMat(){if(CORE_M)return CORE_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#e8e4d8';g.fillRect(0,0,W,H);
+    for(let i=-H;i<W;i+=5){g.strokeStyle=i%10?'rgba(120,112,95,.35)':'rgba(90,84,70,.55)';g.lineWidth=1.4;g.beginPath();g.moveTo(i,0);g.lineTo(i+H,H);g.stroke();}});
+  t.repeat.set(1/120,1/120);CORE_M=new TH.MeshStandardMaterial({map:t,roughness:.85,metalness:0});return CORE_M;}
+function filMat(){if(FIL_M)return FIL_M;const t=tex(256,64,(g,W,H)=>{for(let x=0;x<W;x+=16){const gr=g.createLinearGradient(x,0,x+16,0);gr.addColorStop(0,'#f4f4f1');gr.addColorStop(.5,'#d9dbd8');gr.addColorStop(1,'#f4f4f1');g.fillStyle=gr;g.fillRect(x,0,16,H);}});
+  FIL_M=new TH.MeshStandardMaterial({map:t,roughness:.9,metalness:0});return FIL_M;}
+/* 法蘭＋接頭剖面 (r, z)：圓形法蘭盤 Rf → 錐形漸縮 Rc1 → 接頭 R，末端兩道捲邊（實品照片） */
+function collarProfile(N,C,H,W2,W){const R=N/2,rin=R-2,Rf=Math.min(0.86*N,H/2-4,W2/2-4,(W-W2)/2-4),Rc=Math.min(0.68*N,Rf-12);
+  return {R,rin,Rf,prof:[[rin,0],[Rf,0],[Rf,3.5],[Rc,3.5],[Rc,0.16*C],[R*1.04,0.5*C],[R,0.56*C],[R,C-9],[R+2.6,C-8],[R+2.6,C-4.5],[R,C-3.5],[R,C],[rin,C],[rin,0]]};}
 
 function build(K,id){
+  TH=window.THREE;
   const m=K.mat,s=SP[id],{L,L1,W,W1,W2,H,H1,C,G,N}=s,small=id==='MH-D2DCPMTHZ';
-  const x0=-L/2,x1=L/2,dB=-W/2,dF=W/2,ztop=H-H1;
-  /* body: galvanised steel box, top lid seams, end-cap seams */
+  const x0=-L/2,x1=L/2,dB=-W/2,dF=W/2,ztop=H-H1,movers=[];
+  /* body: galvanised steel box; one standing seam along the lid; screws along the lid edges */
   K.box(x0,x1,0,H,dB,dF,m.body,3);
-  /* single sheet-metal standing seam along the length on the lid (product photo) */
   {const sd=-0.1*W;K.box(x0+6,x1-6,H,H+7,sd-5,sd+5,m.body2,1.5);K.box(x0+6,x1-6,H,H+0.6,sd-9,sd+9,m.body2);}
+  for(let x=x0+40;x<=x1-40;x+=Math.max(120,(L-80)/6))[dB+12,dF-12].forEach(d=>K.rod('y',3.2,x,H+0.6,d,1.2,m.steel,12));
   K.box(x0+4,x1-4,0,0.8,dB+4,dF-4,m.seam);
-  /* 4 duct collars (black) with square flange plates; RA/SA on +x, EA/OA on −x; +d = front (電控箱側) */
-  const cp=collarProfile(N,C,H,W2,W),P=Math.min(cp.R0*2+18,H-6);
+  /* 4 ports: round black flange plate with 8 screws → stepped cone → collar with rolled end rings */
+  const cp=collarProfile(N,C,H,W2,W);
   const ports=[[+1,-1,'RA','回風（室內）'],[+1,+1,'SA','送風（室內）'],[-1,-1,'EA','排風（室外）'],[-1,+1,'OA','新風（室外）']];
   ports.forEach(([sx,sd,code,name])=>{const fx=sx>0?x1:x0,dd=sd*W2/2,hc=H/2;
-    K.box(Math.min(fx,fx+sx*3),Math.max(fx,fx+sx*3),hc-P/2,hc+P/2,dd-P/2,dd+P/2,m.plastic);
-    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.rod('x',3.2,fx+sx*4,hc+a*(P/2-9),dd+b*(P/2-9),2,m.plastic,12));
-    K.lathe('x',sx,fx+sx*3,hc,dd,cp.prof,m.plastic,72);
-    K.disc('x',cp.rin-0.5,fx+sx*6,hc,dd,m.hole);
-    K.tag(fx+sx*(C+3),hc+cp.R0+26,dd,[sx,0,0],code,name);});
+    K.lathe('x',sx,fx,hc,dd,cp.prof,m.plastic,96);
+    for(let i=0;i<8;i++){const a=(i+0.5)*Math.PI/4,r=cp.Rf-8;K.rod('x',3,fx+sx*4.3,hc+r*Math.sin(a),dd+r*Math.cos(a),1.8,m.plastic,12);}
+    K.disc('x',cp.rin-0.5,fx+sx*5,hc,dd,m.hole);
+    K.tag(fx+sx*(C+3),hc+cp.Rf+22,dd,[sx,0,0],code,name);});
   /* hanger brackets ×4 (galvanised): D2 on the length ends, D3~D13 on the width sides; plate with Φ12 hole + up-stand */
   const ear=(px0,px1,pd0,pd1,hx,hd,lx0,lx1,ld0,ld1)=>{K.plateCut(px0,px1,pd0,pd1,ztop-T_BRK,ztop,[],m.body2,[{x:hx,d:hd,r:HOLE_R}]);K.box(lx0,lx1,ztop-LEG,ztop-T_BRK,ld0,ld1,m.body2);};
-  if(small){const off=(L1-L)/2;
-    [1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*L1/2,hd=sd*W1/2,tip=sx*(L1/2+G),a=Math.min(face,tip),b=Math.max(face,tip);
+  if(small){[1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*L1/2,hd=sd*W1/2,tip=sx*(L1/2+G),a=Math.min(face,tip),b=Math.max(face,tip);
       ear(a,b,hd-B_BRK/2,hd+B_BRK/2,hx,hd,Math.min(face,face+sx*T_BRK),Math.max(face,face+sx*T_BRK),hd-B_BRK/2,hd+B_BRK/2);}));}
   else{[1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sd*W/2,hx=sx*L1/2,hd=sd*W1/2,tip=sd*(W1/2+G),a=Math.min(face,tip),b=Math.max(face,tip);
       ear(hx-B_BRK/2,hx+B_BRK/2,a,b,hx,hd,hx-B_BRK/2,hx+B_BRK/2,Math.min(face,face+sd*T_BRK),Math.max(face,face+sd*T_BRK));}));}
-  /* control box (black) on the front side + yellow HV sticker; filter access cover; MEDOLE logo; nameplate */
-  let cb;
-  if(small)cb={x0:x0+537,x1:x0+716,dd:73};else cb={x0:x1-57-172,x1:x1-57,dd:71};
-  const ch0=0.05*H,ch1=0.95*H;
-  K.box(cb.x0,cb.x1,ch0,ch1,dF,dF+cb.dd,m.ctrl,4);
-  [[cb.x0+10,ch0+10],[cb.x1-10,ch0+10],[cb.x0+10,ch1-10],[cb.x1-10,ch1-10]].forEach(([x,h])=>K.screw(x,h,dF+cb.dd,1,3,m.ctrl));
-  K.box(cb.x0+30,cb.x1-30,ch0-14,ch0,dF+cb.dd*0.3,dF+cb.dd*0.7,m.ctrl);   // cable gland strip
-  {const w=Math.min((cb.x1-cb.x0)*0.42,(ch1-ch0)*0.34);K.hvSticker((cb.x0+cb.x1)/2,(ch0+ch1)/2+8,dF+cb.dd,w,w,'z+');}
-  const acx0=small?x0+192:x0+70,acx1=small?x0+524:cb.x0-40;
-  K.box(acx0,acx1,20,H-20,dF,dF+3,m.body2,2);
-  [acx0+28,acx1-28].forEach(x=>K.box(x-14,x+14,H/2-5,H/2+5,dF+3,dF+9,m.ctrl,2));   // access-cover latches
-  K.logo(acx0+(acx1-acx0)*0.3,H-44,dF+3.2,Math.min(180,(acx1-acx0)*0.5),'z+');
-  K.nameplate(acx0+(acx1-acx0)*0.62,52,dF+3.9,Math.min(150,(acx1-acx0)*0.42),40,'z+',id,'全熱交換器 '+s.Q+' CMH');
-  K.tag((cb.x0+cb.x1)/2,ch1+26,dF+cb.dd,[0,0,1],'CB','電控箱');
+
+  /* ---------- 電控箱: black ribbed plastic housing on a galvanised mounting plate (product photo) ---------- */
+  const cb=small?{x0:x0+537,x1:x0+716,dd:73}:{x0:x1-57-172,x1:x1-57,dd:71};
+  const ch0=0.05*H,ch1=0.95*H,cw=cb.x1-cb.x0,chh=ch1-ch0,fz=dF+cb.dd;
+  K.box(cb.x0-12,cb.x1+12,ch0+10,ch1-4,dF,dF+2,m.body2);                          // mounting plate
+  K.box(cb.x0,cb.x1,ch0,ch1-16,dF+2,fz,m.ctrl,6);                                 // housing
+  K.box(cb.x0+10,cb.x1-10,ch1-16,ch1,dF+10,fz-8,m.ctrl,4);                        // stepped top cap
+  [0.06,0.15,0.85,0.94].forEach(f=>{const x=cb.x0+f*cw;K.box(x-3.5,x+3.5,ch0+6,ch1-20,fz,fz+3,m.ctrl);});   // vertical ribs
+  [ch0+10,ch1-26].forEach(h=>K.box(cb.x0+0.2*cw,cb.x1-0.2*cw,h-3,h+3,fz,fz+2.5,m.ctrl));                    // horizontal ribs
+  [0.3,0.7].forEach(f=>{const h=ch0+f*chh;K.box(cb.x1,cb.x1+16,h-11,h+11,dF+cb.dd*0.3,dF+cb.dd*0.62,m.body2);K.box(cb.x1+13,cb.x1+16,h-11,h+11,dF+cb.dd*0.62,dF+cb.dd*0.85,m.body2);});   // side hook clips
+  [cb.x0+0.3*cw,cb.x0+0.7*cw].forEach(x=>K.rod('y',6,x,ch0-6,dF+cb.dd*0.55,12,m.ctrl,16));                  // cable glands
+  K.hvTri((cb.x0+cb.x1)/2,ch1-0.3*chh,fz+0.2,cw*0.5,'z+');
+  K.wireLabel((cb.x0+cb.x1)/2,ch0+0.27*chh,fz+0.2,cw*0.6,chh*0.32,'z+');
+  K.tag((cb.x0+cb.x1)/2,ch1+26,fz,[0,0,1],'CB','電控箱');
+
+  /* ---------- 維修門 (MEDOLE panel): opens to service the PM2.5 filters and the heat-exchange core ---------- */
+  const ax0=small?x0+192:x0+70,ax1=small?x0+524:cb.x0-40,ah0=14,ah1=H-14,acx=(ax0+ax1)/2;
+  [ax0-14,ax1].forEach(x=>K.box(x,x+14,8,H-8,dF,dF+6,m.body2,2));                 // door frame channels
+  K.box(ax0+2,ax1-2,ah0+2,ah1-2,dF+0.2,dF+0.5,m.hole);                            // dark opening behind the door
+  const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
+    [0.3,0.7].forEach(f=>K.box(ax0+6,ax0+22,ah0+f*(ah1-ah0)-10,ah0+f*(ah1-ah0)+10,dF+3,dF+9,m.steel));   // latch clips
+    K.logo(ax0+(ax1-ax0)*0.3,ah1-34,dF+3.2,Math.min(190,(ax1-ax0)*0.5),'z+');
+    K.nameplate(ax0+(ax1-ax0)*0.64,ah0+40,dF+3.9,Math.min(150,(ax1-ax0)*0.42),40,'z+',id,'全熱交換器 '+s.Q+' CMH');});
+  const hinge=new TH.Group();hinge.position.set(0,ah0,K.cz(dF+3));door.parent.add(hinge);hinge.add(door);door.position.set(0,-ah0,-K.cz(dF+3));
+  const doorMv={kind:'door',name:'維修門',g:hinge,angle:1.42,view:0.45,labels:[['in','關閉','—'],['side','打開','往下翻開']]};
+  /* heat-exchange core: square prism standing on a corner (diamond in the side view), slides out +d */
+  const hd=(H-60)/2,Dc=W-90,cd1=dF-8,cd0=cd1-Dc;
+  const core=K.group(()=>{const sh=new TH.Shape();sh.moveTo(0,hd);sh.lineTo(hd,0);sh.lineTo(0,-hd);sh.lineTo(-hd,0);sh.lineTo(0,hd);
+      const cm=new TH.Mesh(new TH.ExtrudeGeometry(sh,{depth:Dc,bevelEnabled:false}),coreMat());cm.position.set(K.cx(acx),H/2,K.cz(cd0));cm.castShadow=cm.receiveShadow=true;K.addMesh(cm);
+      [[0,hd],[hd,0],[0,-hd],[-hd,0]].forEach(([u,v])=>K.box(acx+u-4,acx+u+4,H/2+v-4,H/2+v+4,cd0,cd1,m.steel));   // aluminium corner rails
+      K.box(acx-26,acx+26,H/2-7,H/2+7,cd1,cd1+8,m.ctrl,2);});                        // pull handle
+  /* two PM2.5 filter cassettes beside the core */
+  const fx=hd+24,fh=hd*1.7;
+  const filters=K.group(()=>[-1,1].forEach(sg=>{const x=acx+sg*fx;
+      const fm=new TH.Mesh(new TH.BoxGeometry(20,fh,Dc),filMat());fm.position.set(K.cx(x),H/2,K.cz((cd0+cd1)/2));fm.castShadow=true;K.addMesh(fm);
+      K.box(x-11,x+11,H/2-fh/2-3,H/2+fh/2+3,cd1-6,cd1+1,m.ctrl);K.box(x-6,x+6,H/2-14,H/2+14,cd1+1,cd1+8,m.ctrl,2);}));
+  movers.push(doorMv,
+    {kind:'slideD',name:'全熱交換芯體',g:core,dist:Dc*0.55,door:doorMv,view:0.45,labels:[['in','收回','原位'],['side','抽出','約 55%']]},
+    {kind:'slideD',name:'PM2.5 濾網（2 片）',g:filters,dist:Dc*0.5,door:doorMv,view:0.45,labels:[['in','收回','原位'],['side','抽出','約 50%']]});
+  movers.forEach(mv=>K.movers.push(mv));
+
   /* dimensions: overall length on the front, hanger spacing on the back, width on the right, height on the left */
-  const dFr=dF+cb.dd;
-  K.dim([x0,0,dFr],[x1,0,dFr],[0,0,90],String(L));
+  K.dim([x0,0,fz],[x1,0,fz],[0,0,90],String(L));
   K.dim([-L1/2,ztop,-W1/2],[L1/2,ztop,-W1/2],[0,0,-(small?60:G+60)],String(L1));
   K.dim([x1+C,0,dB],[x1+C,0,dF],[90,0,0],String(W));
   K.dim([x0,0,dF],[x0,H,dF],[0,0,120],String(H));

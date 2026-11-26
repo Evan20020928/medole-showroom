@@ -123,6 +123,7 @@ function makeKit(group,center){
   const K={anchors,dims,mat,PI,FRAME_ROD:2,movers:[],obstacles:[],cx:CX,cz:CZ,
     /* build parts inside a child group (so they can be moved later, e.g. a filter that slides out) */
     group(fn){const g=new T.Group(),prev=tgt;tgt.add(g);tgt=g;try{fn();}finally{tgt=prev;}return g;},
+    addMesh(o){return add(o);},
     /* axis-aligned box, optional rounded vertical edges + bevel */
     box(x0,x1,h0,h1,d0,d1,m,r){
       const L=x1-x0,H=h1-h0,D=d1-d0;let mesh;
@@ -356,6 +357,17 @@ function makeKit(group,center){
         g.beginPath();g.moveTo(W/2,46);g.lineTo(W-48,206);g.lineTo(48,206);g.closePath();g.lineJoin='round';g.lineWidth=12;g.stroke();
         g.beginPath();g.moveTo(W/2+12,88);g.lineTo(W/2-22,148);g.lineTo(W/2+2,148);g.lineTo(W/2-14,192);g.lineTo(W/2+26,130);g.lineTo(W/2+2,130);g.lineTo(W/2+20,88);g.closePath();g.fillStyle='#111';g.fill();});
       return K.decal(x,h,d,w,hh,dir,tex);},
+    /* 三角形高壓警示貼紙（電控箱上蓋，實品照片） */
+    hvTri(x,h,d,w,dir){const tex=canvasTex(256,224,(g,W,H)=>{g.clearRect(0,0,W,H);g.beginPath();g.moveTo(W/2,8);g.lineTo(W-8,H-8);g.lineTo(8,H-8);g.closePath();g.fillStyle='#f3c400';g.fill();
+        g.lineJoin='round';g.lineWidth=12;g.strokeStyle='#111';g.beginPath();g.moveTo(W/2,30);g.lineTo(W-30,H-22);g.lineTo(30,H-22);g.closePath();g.stroke();
+        g.beginPath();g.moveTo(W/2+14,70);g.lineTo(W/2-24,136);g.lineTo(W/2+2,136);g.lineTo(W/2-16,186);g.lineTo(W/2+28,116);g.lineTo(W/2+2,116);g.lineTo(W/2+22,70);g.closePath();g.fillStyle='#111';g.fill();});
+      return K.decal(x,h,d,w,w*224/256,dir,tex);},
+    /* 白色接線圖標籤（電控箱下半，實品照片） */
+    wireLabel(x,h,d,w,hh,dir){const tex=canvasTex(256,256*hh/w,(g,W,H)=>{g.fillStyle='#f2f2ef';g.fillRect(0,0,W,H);g.strokeStyle='#333';g.lineWidth=2;g.strokeRect(6,6,W-12,H-12);
+        g.fillStyle='#222';g.font='700 22px "Noto Sans TC",sans-serif';g.textAlign='center';g.fillText('接線示意圖',W/2,34);
+        g.lineWidth=3;g.strokeRect(W*0.32,H*0.3,W*0.36,H*0.42);for(let i=0;i<5;i++){const y=H*0.36+i*H*0.07;g.beginPath();g.moveTo(W*0.12,y);g.lineTo(W*0.32,y);g.moveTo(W*0.68,y);g.lineTo(W*0.88,y);g.stroke();}
+        g.fillStyle='#555';g.fillRect(W*0.4,H*0.78,W*0.2,H*0.08);g.font='500 15px "Noto Sans TC",sans-serif';['L','N','⏚','COM','CO2'].forEach((t,i)=>g.fillText(t,W*0.08+i*W*0.21,H*0.93));});
+      return K.decal(x,h,d,w,hh,dir,tex);},
     /* 綠色 MEDOLE 標誌 */
     /* 米多力 MEDOLE 標誌：官方圖檔 icons/medole-logo.png（去背，351×71） */
     logo(x,h,d,w,dir){if(!LOGO_TEX){LOGO_TEX=new T.TextureLoader().load('icons/medole-logo.png');LOGO_TEX.encoding=T.sRGBEncoding;LOGO_TEX.anisotropy=8;}
@@ -451,12 +463,15 @@ function planFold(f,obs){
 }
 function renderPull(){
   const box=$('pullBox');if(!box)return;box.hidden=!movers.length;if(!movers.length)return;
-  $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+[['in','收回','原位'],['side','側拉',mv.fold?'抽出 2/3・折疊':'50%']].map(([id,n,sp])=>
+  $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+(mv.labels||[['in','收回','原位'],['side','側拉',mv.fold?'抽出 2/3・折疊':'50%']]).map(([id,n,sp])=>
     '<button type="button" class="chip" data-i="'+i+'" data-id="'+id+'" aria-pressed="'+((mv.state||'in')===id?'true':'false')+'"><b>'+n+'</b><span>'+sp+'</span></button>').join('')).join('');
   $('pullRows').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const mv=movers[+b.dataset.i],id=b.dataset.id;
-    mv.state=id==='in'?null:id;renderPull();
-    if(id!=='in'){   // stop the turntable and turn the back (return side) toward the viewer; a little to the pull side for 側拉
-      setPlaying(false);state.angleGoal=orbit.th+PI+0.55;}});
+    mv.state=id==='in'?null:id;
+    if(id!=='in'&&mv.door)mv.door.state='side';                                            // pulling a part out opens its access door first
+    if(id==='in'&&mv.kind==='door')movers.forEach(o=>{if(o.door===mv)o.state=null;});      // closing the door puts the parts back first
+    renderPull();
+    if(id!=='in'){   // stop the turntable and turn the relevant side toward the viewer (default: back / return side, a little to the pull side)
+      setPlaying(false);state.angleGoal=orbit.th+(mv.view!=null?mv.view:PI+0.55);}});
 }
 
 /* ---------- variants ---------- */
@@ -853,6 +868,12 @@ function frame(now){
         const P=f.plan||{s1:f.step,t1:f.a1,s2:f.step,t2:f.a2};
         mv.g.position.x=-(P.s1*ease(seg(0,0.3))+P.s2*ease(seg(0.45,0.75)));
         f.h1.rotation.y=-P.t1*ease(seg(0.3,0.45));f.h2.rotation.y=-P.t2*ease(seg(0.75,1));return;}
+      if(mv.kind==='door'){   // hinged access door: opens outward about its bottom edge; stays open until every part behind it is back in
+        const busy=movers.some(o=>o.door===mv&&Math.abs(o.g.position.z)>1.5),goal=(mv.state==='side'||busy)?mv.angle:0;
+        mv.g.rotation.x+=(goal-mv.g.rotation.x)*Math.min(1,dt*4);return;}
+      if(mv.kind==='slideD'){ // part sliding straight out through the door (+d), only once the door is (nearly) open
+        const open=!mv.door||mv.door.g.rotation.x>mv.door.angle*0.8,goal=mv.state==='side'&&open?mv.dist:0;
+        mv.g.position.z+=(goal-mv.g.position.z)*Math.min(1,dt*3);return;}
       const gx=mv.state==='side'?-mv.side:0,gy=mv.state==='down'?-mv.down:0;mv.g.position.x+=(gx-mv.g.position.x)*k;mv.g.position.y+=(gy-mv.g.position.y)*k;
       if(mv.state==='down')need=Math.max(need,mv.down-mv.hMin+20);});
     lift+=(need-lift)*k;product.position.y=discH+0.003+lift*MM;}
