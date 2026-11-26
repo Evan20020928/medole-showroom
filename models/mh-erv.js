@@ -97,22 +97,27 @@ function build(K,id){
   [ax0-14,ax1].forEach(x=>K.box(x,x+14,8,H-8,dF,dF+6,m.body2,2));                 // door frame channels
   K.box(ax0+2,ax1-2,ah0+2,ah1-2,dF+0.2,dF+0.5,m.hole);                            // dark opening behind the door
   const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
-    [0.3,0.7].forEach(f=>K.box(ax0+6,ax0+22,ah0+f*(ah1-ah0)-10,ah0+f*(ah1-ah0)+10,dF+3,dF+9,m.steel));   // latch clips
     K.logo(ax0+(ax1-ax0)*0.3,ah1-34,dF+3.2,Math.min(190,(ax1-ax0)*0.5),'z+');
     /* 型號牌移到電控箱白色標籤區（使用者指示） */});
-  const hinge=new TH.Group();hinge.position.set(0,ah0,K.cz(dF+3));door.parent.add(hinge);hinge.add(door);door.position.set(0,-ah0,-K.cz(dF+3));
-  const doorMv={kind:'door',name:'維修門',g:hinge,angle:1.42,view:0.45,labels:[['in','關閉','—'],['side','打開','往下翻開']]};
+  /* 維修門以螺絲固定（實品）：6 顆十字頭螺絲，拆卸時先轉開退出，門板再往外退出並漸隱 */
+  const screws=[];[ax0+14,acx,ax1-14].forEach(x=>[ah0+12,ah1-12].forEach(h=>{const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+3));
+      const hd=new TH.Mesh(new TH.SphereGeometry(4.6,18,8,0,2*Math.PI,0,Math.PI/2),m.steel);hd.rotation.x=Math.PI/2;hd.scale.y=0.55;sg.add(hd);
+      const s1=new TH.Mesh(new TH.BoxGeometry(6.2,1.1,1.2),m.hole),s2=new TH.Mesh(new TH.BoxGeometry(1.1,6.2,1.2),m.hole);s1.position.z=s2.position.z=2.3;sg.add(s1,s2);
+      door.add(sg);screws.push(sg);}));
+  door.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.userData.op=o.material.opacity;}});
+  const doorMv={kind:'door',name:'維修門（螺絲固定）',g:door,screws,view:0.45,labels:[['in','裝回','鎖上螺絲'],['side','拆下','轉開螺絲・退出']]};
   /* heat-exchange core: square prism standing on a corner (diamond in the side view), slides out +d */
-  const hd=(H-60)/2,Dc=W-90,cd1=dF-8,cd0=cd1-Dc;
+  const hd=(H-90)/2,Dc=W-90,cd1=dF-8,cd0=cd1-Dc;
   const core=K.group(()=>{const sh=new TH.Shape();sh.moveTo(0,hd);sh.lineTo(hd,0);sh.lineTo(0,-hd);sh.lineTo(-hd,0);sh.lineTo(0,hd);
       const cm=new TH.Mesh(new TH.ExtrudeGeometry(sh,{depth:Dc,bevelEnabled:false}),coreMat());cm.position.set(K.cx(acx),H/2,K.cz(cd0));cm.castShadow=cm.receiveShadow=true;K.addMesh(cm);
       [[0,hd],[hd,0],[0,-hd],[-hd,0]].forEach(([u,v])=>K.box(acx+u-4,acx+u+4,H/2+v-4,H/2+v+4,cd0,cd1,m.steel));   // aluminium corner rails
       K.box(acx-26,acx+26,H/2-7,H/2+7,cd1,cd1+8,m.ctrl,2);});                        // pull handle
-  /* two PM2.5 filter cassettes beside the core */
-  const fx=hd+24,fh=hd*1.7;
-  const filters=K.group(()=>[-1,1].forEach(sg=>{const x=acx+sg*fx;
-      const fm=new TH.Mesh(new TH.BoxGeometry(20,fh,Dc),filMat());fm.position.set(K.cx(x),H/2,K.cz((cd0+cd1)/2));fm.castShadow=true;K.addMesh(fm);
-      K.box(x-11,x+11,H/2-fh/2-3,H/2+fh/2+3,cd1-6,cd1+1,m.ctrl);K.box(x-6,x+6,H/2-14,H/2+14,cd1+1,cd1+8,m.ctrl,2);}));
+  /* two PM2.5 filters lying flush on the two lower faces of the diamond core (斜貼芯體) */
+  const fl=hd*Math.SQRT2*0.94,ft=18;
+  const filters=K.group(()=>[-1,1].forEach(sg=>{const off=hd/2+(ft/2+1.5)/Math.SQRT2,cx=acx+sg*off,cy=H/2-off,rz=sg*Math.PI/4;
+      const fm=new TH.Mesh(new TH.BoxGeometry(ft,fl,Dc-6),filMat());fm.position.set(K.cx(cx),cy,K.cz((cd0+cd1)/2-3));fm.rotation.z=rz;fm.castShadow=true;K.addMesh(fm);
+      const cap=new TH.Mesh(new TH.BoxGeometry(ft+4,fl+4,5),m.ctrl);cap.position.set(K.cx(cx),cy,K.cz(cd1-2.5));cap.rotation.z=rz;K.addMesh(cap);
+      const hdl=new TH.Mesh(new TH.BoxGeometry(8,26,8),m.ctrl);hdl.position.set(K.cx(cx+sg*7/Math.SQRT2),cy-7/Math.SQRT2,K.cz(cd1+4));hdl.rotation.z=rz;K.addMesh(hdl);}));
   movers.push(doorMv,
     {kind:'slideD',name:'全熱交換芯體',g:core,dist:Dc*0.55,door:doorMv,view:0.45,labels:[['in','收回','原位'],['side','抽出','約 55%']]},
     {kind:'slideD',name:'PM2.5 濾網（2 片）',g:filters,dist:Dc*0.5,door:doorMv,view:0.45,labels:[['in','收回','原位'],['side','抽出','約 50%']]});

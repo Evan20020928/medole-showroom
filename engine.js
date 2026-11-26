@@ -888,11 +888,15 @@ function frame(now){
         const P=f.plan||{s1:f.step,t1:f.a1,s2:f.step,t2:f.a2};
         mv.g.position.x=-(P.s1*ease(seg(0,0.3))+P.s2*ease(seg(0.45,0.75)));
         f.h1.rotation.y=-P.t1*ease(seg(0.3,0.45));f.h2.rotation.y=-P.t2*ease(seg(0.75,1));return;}
-      if(mv.kind==='door'){   // hinged access door: opens outward about its bottom edge; stays open until every part behind it is back in
-        const busy=movers.some(o=>o.door===mv&&Math.abs(o.g.position.z)>1.5),goal=(mv.state==='side'||busy)?mv.angle:0;
-        mv.g.rotation.x+=(goal-mv.g.rotation.x)*Math.min(1,dt*4);return;}
+      if(mv.kind==='door'){   // screwed access panel: screws spin out (0–0.35), then the panel backs off +d and fades (0.35–1); reverse to refit
+        const busy=movers.some(o=>o.door===mv&&Math.abs(o.g.position.z)>1.5),goal=(mv.state==='side'||busy)?1:0;
+        mv.t=(mv.t||0)+Math.sign(goal-(mv.t||0))*Math.min(Math.abs(goal-(mv.t||0)),dt*0.55);
+        const t=mv.t,sp=Math.min(1,t/0.35),q=Math.max(0,(t-0.35)/0.65),e=q*q*(3-2*q);
+        (mv.screws||[]).forEach(sg=>{if(sg.userData.z0==null)sg.userData.z0=sg.position.z;sg.rotation.z=-sp*6*PI;sg.position.z=sg.userData.z0+sp*9;});
+        mv.g.position.z=e*70;mv.g.visible=q<0.995;
+        mv.g.traverse(o=>{if(o.isMesh&&o.userData.op!=null)o.material.opacity=o.userData.op*(1-e);});return;}
       if(mv.kind==='slideD'){ // part sliding straight out through the door (+d), only once the door is (nearly) open
-        const open=!mv.door||mv.door.g.rotation.x>mv.door.angle*0.8,goal=mv.state==='side'&&open?mv.dist:0;
+        const open=!mv.door||(mv.door.t||0)>0.97,goal=mv.state==='side'&&open?mv.dist:0;
         mv.g.position.z+=(goal-mv.g.position.z)*Math.min(1,dt*3);return;}
       const gx=mv.state==='side'?-mv.side:0,gy=mv.state==='down'?-mv.down:0;mv.g.position.x+=(gx-mv.g.position.x)*k;mv.g.position.y+=(gy-mv.g.position.y)*k;
       if(mv.state==='down')need=Math.max(need,mv.down-mv.hMin+20);});
