@@ -85,6 +85,7 @@ const mat={
   body:new T.MeshStandardMaterial(),body2:new T.MeshStandardMaterial(),
   seam:new T.MeshStandardMaterial({color:0x0b0c0d,roughness:1}),
   ctrl:new T.MeshStandardMaterial({color:lin(new T.Color(0x1c1d20)),metalness:.15,roughness:.5}),   // 黑色電控箱
+  label:new T.MeshStandardMaterial({color:lin(new T.Color(0xeeeeea)),roughness:.6}),
   plastic:new T.MeshStandardMaterial({color:lin(new T.Color(0x121213)),metalness:0,roughness:.3,side:T.DoubleSide}),
   hole:new T.MeshStandardMaterial({color:0x000000,roughness:1,envMapIntensity:0,side:T.DoubleSide}),
   teal:new T.MeshStandardMaterial({color:lin(new T.Color(0x4a8285)),metalness:.02,roughness:.3,transparent:true,opacity:.72,depthWrite:true,side:T.DoubleSide}),   // 半透明（depthWrite on: stable while rotating）   // 新風風門：藍綠色塑膠（實品照片）
@@ -549,7 +550,13 @@ function specRows(id,def){
     r('吊架孔距 L1 × W1',s.L1+' × '+s.W1+' mm');
     r('吊架高度 H1',s.H1+' mm（距機頂）');
     r('接頭間距 W2',s.W2+' mm');
-    r('能量回收率','70% 以上','txt');
+    r('機外靜壓',s.pa?s.pa+' Pa':'');
+    r('焓效率（夏季／冬季）',s.hs?s.hs+' %／'+s.hw+' %':'','txt');
+    r('溫度效率',s.te?s.te+' %':'','txt');
+    r('噪音',s.db?s.db+' dB(A)':'');
+    r('電源',s.v?'1Φ '+s.v+' V':'');
+    r('輸入功率',s.w?s.w+' W':'');
+    r('淨重',s.kg?s.kg+' kg':'');
     r('整機 PM2.5 過濾效率','95% 以上','txt');
     r('馬達','DC 直流變頻','txt');
     r('機體材質',(def&&def.material)||'鍍鋅鋼板','txt');
@@ -651,7 +658,7 @@ function renderHead(id){
   $('modelName').classList.toggle('long',id.length>10);
   $('eyebrow').textContent='米多力・'+((def&&def.kind)||'吊隱式風管除濕機');
   const erv=catOf(id)==='erv';
-  $('kpis').innerHTML=(erv?[[s.cmh,'CMH','風量'],[s.duct?'Φ'+s.duct:'','mm','風管接頭'],['70','%↑','能量回收率']]:[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']]).filter(k=>k[0]).map(k=>k[3]?
+  $('kpis').innerHTML=(erv?[[s.cmh,'CMH','風量'],[s.te||'','%','溫度效率'],[s.w?String(s.w):'','W','輸入功率']]:[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']]).filter(k=>k[0]).map(k=>k[3]?
     '<button type="button" class="kpi-ef" id="btnEf" aria-expanded="false" aria-controls="efPop"><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+' <i aria-hidden="true">ⓘ</i></span></button>':
     '<div><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+'</span></div>').join('');
   /* 能源因數算法: EF = 除濕能力(27°C/60%, L/日) ÷ 消耗功率(W) × 1000 ÷ 24 */

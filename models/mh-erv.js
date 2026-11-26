@@ -12,18 +12,31 @@ const SP={
   'MH-D10DCPMTHZ':{L:1186,L1:1115,W:1134,W1:1190,W2:678,H:388,H1:170,C:85, G:19,  N:242,Q:1000},
   'MH-D13DCPMTHZ':{L:1199,L1:1130,W:1216,W1:1273,W2:621,H:388,H1:171,C:85, G:19,  N:242,Q:1300}
 };
+/* 規格（全熱交換器型錄 260529 第 8 頁）：靜壓 Pa、焓效率 夏/冬 %、溫度效率 %、噪音 dB(A)、電壓 V、輸入功率 W、淨重 kg */
+const CAT={
+  'MH-D2DCPMTHZ': {pa:75,hs:'55-66',hw:'59-70',te:'70-82',db:31.5,v:220,w:38, kg:25},
+  'MH-D3DCPMTHZ': {pa:85,hs:'57-70',hw:'61-72',te:'68-82',db:34.5,v:220,w:85, kg:27},
+  'MH-D4DCPMTHZ': {pa:88,hs:'57-70',hw:'60-74',te:'69-83',db:37.5,v:220,w:107,kg:33},
+  'MH-D6DCPMTHZ': {pa:87,hs:'59-74',hw:'61-78',te:'70-83',db:39,  v:220,w:140,kg:38},
+  'MH-D8DCPMTHZ': {pa:90,hs:'55-66',hw:'57-76',te:'68-83',db:41,  v:220,w:160,kg:62},
+  'MH-D10DCPMTHZ':{pa:76,hs:'58-70',hw:'62-75',te:'70-83',db:42,  v:220,w:188,kg:72},
+  'MH-D13DCPMTHZ':{pa:80,hs:'59-68',hw:'59-70',te:'70-83',db:43,  v:220,w:405,kg:81}
+};
 const DATA=window.MEDOLE_DATA=window.MEDOLE_DATA||{specs:{}};
 Object.keys(SP).forEach(id=>{const s=SP[id];
-  DATA.specs[id]={cat:'erv',cmh:String(s.Q),duct:String(s.N),size:s.L+'*'+s.W+'*'+s.H,L:s.L,L1:s.L1,W:s.W,W1:s.W1,W2:s.W2,H:s.H,H1:s.H1,C:s.C,G:s.G,N:s.N};});
+  DATA.specs[id]={cat:'erv',...CAT[id],cmh:String(s.Q),duct:String(s.N),size:s.L+'*'+s.W+'*'+s.H,L:s.L,L1:s.L1,W:s.W,W1:s.W1,W2:s.W2,H:s.H,H1:s.H1,C:s.C,G:s.G,N:s.N};});
 
 const T_BRK=2.5,B_BRK=40,LEG=40,HOLE_R=6;
 let TH=null;   // resolved at build time (three.js loads after the model files)
 /* textures made once: heat-exchange core (stacked plates, fine diagonal layer lines) and white PM2.5 pleats */
-let CORE_M=null,FIL_M=null;
+let CORE_M=null,FIL_M=null,BOARD_M=null;
 function tex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new TH.CanvasTexture(c);t.encoding=TH.sRGBEncoding;t.wrapS=t.wrapT=TH.RepeatWrapping;t.anisotropy=8;return t;}
 function coreMat(){if(CORE_M)return CORE_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#e8e4d8';g.fillRect(0,0,W,H);
     for(let i=-H;i<W;i+=5){g.strokeStyle=i%10?'rgba(120,112,95,.35)':'rgba(90,84,70,.55)';g.lineWidth=1.4;g.beginPath();g.moveTo(i,0);g.lineTo(i+H,H);g.stroke();}});
   t.repeat.set(1/120,1/120);CORE_M=new TH.MeshStandardMaterial({map:t,roughness:.85,metalness:0});return CORE_M;}
+function boardMat(){if(BOARD_M)return BOARD_M;const t=tex(256,256,(g,W,H)=>{g.fillStyle='#3d3f42';g.fillRect(0,0,W,H);
+    for(let i=0;i<5200;i++){const v=40+Math.random()*70|0;g.fillStyle='rgba('+v+','+v+','+(v+3)+','+(.35+Math.random()*.5)+')';g.fillRect(Math.random()*W,Math.random()*H,1+Math.random()*2.2,1+Math.random()*2.2);}});
+  t.repeat.set(3,1);BOARD_M=new TH.MeshStandardMaterial({map:t,roughness:.95,metalness:0});return BOARD_M;}
 function filMat(){if(FIL_M)return FIL_M;const t=tex(256,64,(g,W,H)=>{for(let x=0;x<W;x+=16){const gr=g.createLinearGradient(x,0,x+16,0);gr.addColorStop(0,'#f4f4f1');gr.addColorStop(.5,'#d9dbd8');gr.addColorStop(1,'#f4f4f1');g.fillStyle=gr;g.fillRect(x,0,16,H);}});
   FIL_M=new TH.MeshStandardMaterial({map:t,roughness:.9,metalness:0});return FIL_M;}
 /* 法蘭＋接頭剖面 (r, z)：圓形法蘭盤 Rf → 錐形漸縮 Rc1 → 接頭 R，末端兩道捲邊（實品照片） */
@@ -36,7 +49,10 @@ function build(K,id){
   const x0=-L/2,x1=L/2,dB=-W/2,dF=W/2,ztop=H-H1,movers=[];
   /* body: galvanised steel box; one standing seam along the lid; screws along the lid edges */
   K.box(x0,x1,0,H,dB,dF,m.body,3);
-  {const sd=-0.1*W;K.box(x0+6,x1-6,H,H+7,sd-5,sd+5,m.body2,1.5);K.box(x0+6,x1-6,H,H+0.6,sd-9,sd+9,m.body2);}
+  {const sd=dB+22;K.box(x0+6,x1-6,H,H+7,sd-4,sd+4,m.body2,1.5);K.box(x0+6,x1-6,H,H+0.6,sd-9,sd+9,m.body2);}   // 唯一一條板金接縫：沿長度、靠背側邊緣（實品照片）
+  /* back face: dark grey speckled insulation board panel (實品照片：明顯不同的顏色與材質) + black pull handle */
+  {const pm=new TH.Mesh(new TH.BoxGeometry(L-16,H-14,4),boardMat());pm.position.set(K.cx(0),H/2,K.cz(dB-2));pm.castShadow=pm.receiveShadow=true;K.addMesh(pm);
+   const hx=x1-46,hh=H*0.62;K.box(hx-5,hx+5,hh-22,hh+22,dB-16,dB-4,m.ctrl,2);K.box(hx-5,hx+5,hh+14,hh+22,dB-24,dB-4,m.ctrl,2);K.box(hx-5,hx+5,hh-22,hh-14,dB-24,dB-4,m.ctrl,2);}
   for(let x=x0+40;x<=x1-40;x+=Math.max(120,(L-80)/6))[dB+12,dF-12].forEach(d=>K.rod('y',3.2,x,H+0.6,d,1.2,m.steel,12));
   K.box(x0+4,x1-4,0,0.8,dB+4,dF-4,m.seam);
   /* 4 ports: round black flange plate with 8 screws → stepped cone → collar with rolled end rings */
@@ -65,7 +81,7 @@ function build(K,id){
   [0.3,0.7].forEach(f=>{const h=ch0+f*chh;K.box(cb.x1,cb.x1+16,h-11,h+11,dF+cb.dd*0.3,dF+cb.dd*0.62,m.body2);K.box(cb.x1+13,cb.x1+16,h-11,h+11,dF+cb.dd*0.62,dF+cb.dd*0.85,m.body2);});   // side hook clips
   [cb.x0+0.3*cw,cb.x0+0.7*cw].forEach(x=>K.rod('y',6,x,ch0-6,dF+cb.dd*0.55,12,m.ctrl,16));                  // cable glands
   K.hvTri((cb.x0+cb.x1)/2,ch1-0.3*chh,fz+0.2,cw*0.5,'z+');
-  K.wireLabel((cb.x0+cb.x1)/2,ch0+0.27*chh,fz+0.2,cw*0.6,chh*0.32,'z+');
+  K.box(cb.x0+0.2*cw,cb.x1-0.2*cw,ch0+0.11*chh,ch0+0.43*chh,fz,fz+0.6,m.label);   // 白色標籤區（內容先留白）
   K.tag((cb.x0+cb.x1)/2,ch1+26,fz,[0,0,1],'CB','電控箱');
 
   /* ---------- 維修門 (MEDOLE panel): opens to service the PM2.5 filters and the heat-exchange core ---------- */
