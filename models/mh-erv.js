@@ -97,7 +97,8 @@ function build(K,id){
   [ax0-14,ax1].forEach(x=>K.box(x,x+14,8,H-8,dF,dF+6,m.body2,2));                 // door frame channels
   K.box(ax0+2,ax1-2,ah0+2,ah1-2,dF+0.2,dF+0.5,m.hole);                            // dark opening behind the door
   const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
-    K.logo(ax0+(ax1-ax0)*0.3,ah1-34,dF+3.2,Math.min(190,(ax1-ax0)*0.5),'z+');
+    {const lw=Math.min(190,(ax1-ax0)*0.5),lh=lw*71/351,lx=ax0+(ax1-ax0)*0.3,ly=ah1-34;   // 白底標牌＋LOGO（實品照片）
+     K.box(lx-lw/2-10,lx+lw/2+10,ly-lh/2-8,ly+lh/2+8,dF+3,dF+3.8,m.label);K.logo(lx,ly,dF+3.9,lw,'z+');}
     /* 型號牌移到電控箱白色標籤區（使用者指示） */});
   /* 維修門以螺絲固定（實品）：四角 4 顆十字頭螺絲，拆卸時先轉開退出，門板再往外退出並漸隱 */
   const screws=[];[ax0+7,ax1-7].forEach(x=>[ah0+7,ah1-7].forEach(h=>{/* 4 顆，四個角 */const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+3));
@@ -106,7 +107,7 @@ function build(K,id){
       const hdm=new TH.Mesh(new TH.LatheGeometry(prof,28),m.steel);hdm.rotation.x=Math.PI/2;sg.add(hdm);
       [[3.4,0.9],[0.9,3.4]].forEach(([a,b])=>{const ck=new TH.Mesh(new TH.BoxGeometry(a*2,b*2,1.6),m.hole);ck.position.z=1.15;sg.add(ck);});   // cross recess: top sits just below the head top (1.95)
       door.add(sg);screws.push(sg);}));
-  door.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.userData.op=o.material.opacity;}});
+  door.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.userData.op=o.material.opacity;o.userData.tr=o.material.transparent;}});   // stays opaque until it fades (else it can cover the logo)
   const doorMv={kind:'door',name:'維修門（螺絲固定）',g:door,screws,view:0.45,labels:[['in','裝回','鎖上螺絲'],['side','拆下','轉開螺絲・退出']]};
   /* heat-exchange core: square prism standing on a corner (diamond in the side view), slides out +d */
   const hd=(H-90)/2,Dc=W-90,cd1=dF-8,cd0=cd1-Dc;

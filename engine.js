@@ -363,7 +363,7 @@ function makeKit(group,center){
       p.position.set(CX(px),h,CZ(pd));return add(p);
     },
     /* plane decal helper: tex on a w×hh plane, 0.8 mm off the face, facing dir */
-    decal(x,h,d,w,hh,dir,tex){const p=new T.Mesh(new T.PlaneGeometry(w,hh),new T.MeshStandardMaterial({map:tex,roughness:.5,transparent:true,alphaTest:.04,depthWrite:false}));
+    decal(x,h,d,w,hh,dir,tex){const p=new T.Mesh(new T.PlaneGeometry(w,hh),new T.MeshStandardMaterial({map:tex,roughness:.5,transparent:true,alphaTest:.04,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));p.renderOrder=2;
       let px=x,pd=d;if(dir==='x-'){p.rotation.y=-PI/2;px-=0.8;}else if(dir==='x+'){p.rotation.y=PI/2;px+=0.8;}else if(dir==='z-'){p.rotation.y=PI;pd-=0.8;}else pd+=0.8;
       p.position.set(CX(px),h,CZ(pd));return add(p);},
     /* 黃色高壓警示貼紙（全熱交換器電控箱，實品照片）: yellow square, black border, warning triangle with lightning */
@@ -894,7 +894,8 @@ function frame(now){
         const t=mv.t,sp=Math.min(1,t/0.35),q=Math.max(0,(t-0.35)/0.65),e=q*q*(3-2*q);
         (mv.screws||[]).forEach(sg=>{if(sg.userData.z0==null)sg.userData.z0=sg.position.z;sg.rotation.z=-sp*6*PI;sg.position.z=sg.userData.z0+sp*9;});
         mv.g.position.z=e*70;mv.g.visible=q<0.995;
-        mv.g.traverse(o=>{if(o.isMesh&&o.userData.op!=null)o.material.opacity=o.userData.op*(1-e);});return;}
+        const fading=e>0.001;mv.g.traverse(o=>{if(o.isMesh&&o.userData.op!=null){const tr=o.userData.tr||fading;if(o.material.transparent!==tr){o.material.transparent=tr;o.material.needsUpdate=true;}
+          o.material.opacity=o.userData.op*(1-e);if(o.userData.tr)o.renderOrder=2;}});return;}
       if(mv.kind==='slideD'){ // part sliding straight out through the door (+d), only once the door is (nearly) open
         const open=!mv.door||(mv.door.t||0)>0.97,goal=mv.state==='side'&&open?mv.dist:0;
         mv.g.position.z+=(goal-mv.g.position.z)*Math.min(1,dt*3);return;}
