@@ -892,7 +892,7 @@ function frame(now){
         const busy=movers.some(o=>o.door===mv&&Math.abs(o.g.position.z)>1.5),goal=(mv.state==='side'||busy)?1:0;
         mv.t=(mv.t||0)+Math.sign(goal-(mv.t||0))*Math.min(Math.abs(goal-(mv.t||0)),dt*0.55);
         const t=mv.t,sp=Math.min(1,t/0.35),q=Math.max(0,(t-0.35)/0.65),e=q*q*(3-2*q);
-        (mv.screws||[]).forEach(sg=>{if(sg.userData.z0==null)sg.userData.z0=sg.position.z;sg.rotation.z=-sp*6*PI;sg.position.z=sg.userData.z0+sp*9;});
+        (mv.screws||[]).forEach(sg=>{if(sg.userData.z0==null)sg.userData.z0=sg.position.z;sg.rotation.z=-sp*8*PI;sg.position.z=sg.userData.z0+sp*16;});
         mv.g.position.z=e*70;mv.g.visible=q<0.995;
         const fading=e>0.001;mv.g.traverse(o=>{if(o.isMesh&&o.userData.op!=null){const tr=o.userData.tr||fading;if(o.material.transparent!==tr){o.material.transparent=tr;o.material.needsUpdate=true;}
           o.material.opacity=o.userData.op*(1-e);if(o.userData.tr)o.renderOrder=2;}});return;}
