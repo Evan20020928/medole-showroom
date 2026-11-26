@@ -94,9 +94,9 @@ function build(K,id){
 
   /* ---------- 維修門 (MEDOLE panel): opens to service the PM2.5 filters and the heat-exchange core ---------- */
   const ax0=xs+16,ax1=small?x0+524:cb.x0-40,ah0=14,ah1=H-14,acx=(ax0+ax1)/2;
-  [ax0-14,ax1].forEach(x=>K.box(x,x+14,8,H-8,dF,dF+6,m.body2,2));                 // door frame channels
   K.box(ax0+2,ax1-2,ah0+2,ah1-2,dF+0.2,dF+0.5,m.hole);                            // dark opening behind the door
   const door=K.group(()=>{K.box(ax0,ax1,ah0,ah1,dF+0.6,dF+3,m.body2,2);
+    [ax0-14,ax1].forEach(x=>K.box(x,x+14,8,H-8,dF+0.3,dF+6,m.body2,2));   // 兩側突起折邊：與門板同一片，拆門時一起退出
     {const lw=Math.min(190,(ax1-ax0)*0.5),lh=lw*71/351,lx=ax0+(ax1-ax0)*0.3,ly=ah1-34;   // 白底標牌＋LOGO（實品照片）
      K.box(lx-lw/2-10,lx+lw/2+10,ly-lh/2-8,ly+lh/2+8,dF+3,dF+3.8,m.label);K.logo(lx,ly,dF+3.9,lw,'z+');}
     /* 型號牌移到電控箱白色標籤區（使用者指示） */});
@@ -106,8 +106,8 @@ function build(K,id){
       const prof=[[0.01,1.9],[2.6,1.9],[3.8,1.6],[4.5,1.0],[4.7,0.3],[4.7,0]].map(([r,z])=>new TH.Vector2(r,z)).reverse();
       const hdm=new TH.Mesh(new TH.LatheGeometry(prof,28),m.steel);hdm.rotation.x=Math.PI/2;sg.add(hdm);
       [[3.4,0.9],[0.9,3.4]].forEach(([a,b])=>{const ck=new TH.Mesh(new TH.BoxGeometry(a*2,b*2,1.6),m.hole);ck.position.z=1.15;sg.add(ck);});   // cross recess: top sits just below the head top (1.95)
-      const sh=new TH.Mesh(new TH.CylinderGeometry(2,1.4,5.6,14),m.steel);sh.rotation.x=Math.PI/2;sh.position.z=-2.8;sg.add(sh);   // threaded shank (inside the frame until backed out)
-      for(let k=0;k<3;k++){const th=new TH.Mesh(new TH.TorusGeometry(1.95,0.3,6,16),m.steel);th.position.z=-1.2-k*1.6;sg.add(th);}   // thread ridges
+      const sh=new TH.Mesh(new TH.CylinderGeometry(2,1.3,13,14),m.steel);sh.rotation.x=Math.PI/2;sh.position.z=-6.5;sh.userData.shank=1;sg.add(sh);   // threaded shank (inside the frame until backed out)
+      for(let k=0;k<7;k++){const th=new TH.Mesh(new TH.TorusGeometry(1.95-k*0.07,0.3,6,16),m.steel);th.position.z=-1.2-k*1.6;th.userData.shank=1;sg.add(th);}   // thread ridges
       door.add(sg);screws.push(sg);}));
   door.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.userData.op=o.material.opacity;o.userData.tr=o.material.transparent;}});   // stays opaque until it fades (else it can cover the logo)
   const doorMv={kind:'door',name:'維修門（螺絲固定）',g:door,screws,view:0.45,labels:[['in','裝回','鎖上螺絲'],['side','拆下','轉開螺絲・退出']]};
