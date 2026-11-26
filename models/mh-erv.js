@@ -70,11 +70,12 @@ function build(K,id){
     K.disc('x',cp.rin-0.5,fx+sx*5,hc,dd,m.hole);
     K.tag(fx+sx*(C+3),hc+cp.Rf+22,dd,[sx,0,0],code,name);});
   /* hanger brackets ×4 (galvanised): D2 on the length ends, D3~D13 on the width sides; plate with Φ12 hole + up-stand */
-  const ear=(px0,px1,pd0,pd1,hx,hd,lx0,lx1,ld0,ld1)=>{K.plateCut(px0,px1,pd0,pd1,ztop-T_BRK,ztop,[],m.body2,[{x:hx,d:hd,r:HOLE_R}]);K.box(lx0,lx1,ztop-LEG,ztop-T_BRK,ld0,ld1,m.body2);};
+  /* 吊耳：吊孔往最前端開口，牙條可從側邊滑入（實品照片） */
+  const ear=(px0,px1,pd0,pd1,hx,hd,lx0,lx1,ld0,ld1,dir)=>{K.plateCut(px0,px1,pd0,pd1,ztop-T_BRK,ztop,[{x:hx,d:hd,r:HOLE_R,dir}],m.body2);K.box(lx0,lx1,ztop-LEG,ztop-T_BRK,ld0,ld1,m.body2);};
   if(small){[1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*L1/2,hd=sd*W1/2,tip=sx*(L1/2+G),a=Math.min(face,tip),b=Math.max(face,tip);
-      ear(a,b,hd-B_BRK/2,hd+B_BRK/2,hx,hd,Math.min(face,face+sx*T_BRK),Math.max(face,face+sx*T_BRK),hd-B_BRK/2,hd+B_BRK/2);}));}
+      ear(a,b,hd-B_BRK/2,hd+B_BRK/2,hx,hd,Math.min(face,face+sx*T_BRK),Math.max(face,face+sx*T_BRK),hd-B_BRK/2,hd+B_BRK/2,sx>0?'+x':'-x');}));}
   else{[1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sd*W/2,hx=sx*L1/2,hd=sd*W1/2,tip=sd*(W1/2+G),a=Math.min(face,tip),b=Math.max(face,tip);
-      ear(hx-B_BRK/2,hx+B_BRK/2,a,b,hx,hd,hx-B_BRK/2,hx+B_BRK/2,Math.min(face,face+sd*T_BRK),Math.max(face,face+sd*T_BRK));}));}
+      ear(hx-B_BRK/2,hx+B_BRK/2,a,b,hx,hd,hx-B_BRK/2,hx+B_BRK/2,Math.min(face,face+sd*T_BRK),Math.max(face,face+sd*T_BRK),sd>0?'+d':'-d');}));}
 
   /* ---------- 電控箱: black ribbed plastic housing on a galvanised mounting plate (product photo) ---------- */
   const cb=small?{x0:x0+537,x1:x0+716,dd:73}:{x0:x1-57-172,x1:x1-57,dd:71};
