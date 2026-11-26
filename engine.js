@@ -248,11 +248,17 @@ function makeKit(group,center){
       /* each notch = round hole r + a neck of half-width nw (default r = straight slot; nw<r = keyhole) running out to the edge */
       const P=[],arc=(cx,cd,r,a0,sw)=>{const n=Math.max(16,Math.round(sw/10));for(let i=0;i<=n;i++){const a=(a0-sw*i/n)*PI/180;P.push([cx+r*Math.cos(a),cd+r*Math.sin(a)]);}};
       const nk=(n,e)=>{const w=Math.min(n.nw||n.r,n.r),a=Math.asin(w/n.r)*180/PI;return {w,a0:e-a,sw:360-2*a};};
+      /* n.lr set: head = rectangle (width 2r, length lr) ending in a semicircle on the inner side, then a neck (half-width nw) out to the edge.
+         s = perpendicular on the 'before' side, u = outward toward the edge, L = centre-to-edge distance */
+      const slotHead=(n,s,u,L)=>{const w=Math.min(n.nw||n.r,n.r),r=n.r,c=[n.x,n.d],pt=(a,b)=>[c[0]+u[0]*a+s[0]*b,c[1]+u[1]*a+s[1]*b];
+        P.push(pt(L,w),pt(n.lr,w),pt(n.lr,r),pt(0,r));
+        for(let i=1;i<16;i++){const t=PI*i/16;P.push([c[0]+r*(Math.cos(t)*s[0]-Math.sin(t)*u[0]),c[1]+r*(Math.cos(t)*s[1]-Math.sin(t)*u[1])]);}
+        P.push(pt(0,-r),pt(n.lr,-r),pt(n.lr,-w),pt(L,-w));};
       // CCW outline in (x,d): -d edge x0→x1, +x edge d0→d1, +d edge x1→x0, -x edge d1→d0
-      P.push([x0,d0]);E['-d'].sort((a,b)=>a.x-b.x).forEach(n=>{const k=nk(n,270);P.push([n.x-k.w,d0]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([n.x+k.w,d0]);});
-      P.push([x1,d0]);E['+x'].sort((a,b)=>a.d-b.d).forEach(n=>{const k=nk(n,0);P.push([x1,n.d-k.w]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([x1,n.d+k.w]);});
-      P.push([x1,d1]);E['+d'].sort((a,b)=>b.x-a.x).forEach(n=>{const k=nk(n,90);P.push([n.x+k.w,d1]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([n.x-k.w,d1]);});
-      P.push([x0,d1]);E['-x'].sort((a,b)=>b.d-a.d).forEach(n=>{const k=nk(n,180);P.push([x0,n.d+k.w]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([x0,n.d-k.w]);});
+      P.push([x0,d0]);E['-d'].sort((a,b)=>a.x-b.x).forEach(n=>{if(n.lr!=null)return slotHead(n,[-1,0],[0,-1],n.d-d0);const k=nk(n,270);P.push([n.x-k.w,d0]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([n.x+k.w,d0]);});
+      P.push([x1,d0]);E['+x'].sort((a,b)=>a.d-b.d).forEach(n=>{if(n.lr!=null)return slotHead(n,[0,-1],[1,0],x1-n.x);const k=nk(n,0);P.push([x1,n.d-k.w]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([x1,n.d+k.w]);});
+      P.push([x1,d1]);E['+d'].sort((a,b)=>b.x-a.x).forEach(n=>{if(n.lr!=null)return slotHead(n,[1,0],[0,1],d1-n.d);const k=nk(n,90);P.push([n.x+k.w,d1]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([n.x-k.w,d1]);});
+      P.push([x0,d1]);E['-x'].sort((a,b)=>b.d-a.d).forEach(n=>{if(n.lr!=null)return slotHead(n,[0,1],[-1,0],n.x-x0);const k=nk(n,180);P.push([x0,n.d+k.w]);arc(n.x,n.d,n.r,k.a0,k.sw);P.push([x0,n.d-k.w]);});
       const sh=new T.Shape();P.forEach(([x,d],i)=>i?sh.lineTo(CX(x),CZ(d)):sh.moveTo(CX(x),CZ(d)));
       (inner||[]).forEach(q=>{const p=new T.Path(),cx=CX(q.x),cz=CZ(q.d),L=(q.len||0)/2;   // real through-holes: round, or 長圓孔 along d
         if(!L)p.absarc(cx,cz,q.r,0,2*PI,true);else{p.moveTo(cx+q.r,cz-L);p.absarc(cx,cz-L,q.r,0,-PI,true);p.lineTo(cx-q.r,cz+L);p.absarc(cx,cz+L,q.r,PI,0,true);p.lineTo(cx+q.r,cz-L);}
