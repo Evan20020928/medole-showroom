@@ -48,8 +48,9 @@ function build(K,id){
     [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>scr(K,'x',sx,fx+sx*4,hc+a*(P/2-19),b*(P/2-19),3.2,m.plastic));
     K.lathe('x',sx,fx+sx*4,hc,0,[[R-2,0],[R+10,0],[R+10,6],[R,14],[R,FL-10],[R+2.5,FL-8],[R+2.5,FL-4],[R,FL-4],[R,FL-4],[R-2,FL-4],[R-2,0]],m.plastic,72);
     K.disc('x',R-2.5,fx+sx*0.6,hc,0,m.hole);   // dark duct interior
-    if(sx<0){K.rod('z',7,fx-24,hc+22,0,R*1.5,fm.uv,18);K.rod('z',7,fx-24,hc-22,0,R*1.5,fm.uv,18);   // UV 殺菌燈管（藍光，回風口內）
-      const gl=new TH.Mesh(new TH.CircleGeometry(R-3,48),fm.glow);gl.rotation.y=-Math.PI/2;gl.position.set(K.cx(fx-FL+8),hc,K.cz(0));gl.renderOrder=3;K.addMesh(gl);}
+    if(sx<0){const ch=k=>2*Math.sqrt((R-8)**2-k*k)*0.92;   // UV 殺菌燈管：藏在回風法蘭深處（靠機體端面），兩端都在管壁內
+      [22,-22].forEach(k=>K.rod('z',5.5,fx-9,hc+k,0,ch(k),fm.uv,18));
+      const gl=new TH.Mesh(new TH.CircleGeometry(R-3,48),fm.glow);gl.rotation.y=-Math.PI/2;gl.position.set(K.cx(fx-16),hc,K.cz(0));gl.renderOrder=3;K.addMesh(gl);}
     K.tag(fx+sx*(FL+4),hc+R+30,0,[sx,0,0],code,name,'6"（150mm）');});
   /* 吊耳 ×4：機體兩端 L 型吊架，吊孔 680 × 310；耳板離機底 25（型錄圖），吊孔往外端開口（鎖孔形：圓孔＋窄頸開到端緣），牙條可從外端滑入 */
   /* 吊耳 ×4（型錄外觀尺寸圖）：L 型吊架鎖在機體兩端面，立邊由機底往上，耳板頂面離機底 83；
