@@ -12,7 +12,7 @@ const CFG=window.SHOWROOM||{mode:'single',models:[]};
 const DATA=window.MEDOLE_DATA||{specs:{},common:{},options:[]};
 const REG={};(window.MEDOLE_MODELS||[]).forEach(m=>REG[m.id]=m);
 /* product categories (header switch). Models without .cat are dehumidifiers. Add 空氣清淨機 here later. */
-const CATS=[{id:'dh',name:'吊隱式除濕機'},{id:'erv',name:'全熱交換器'}];
+const CATS=[{id:'dh',name:'吊隱式除濕機'},{id:'erv',name:'全熱交換器'},{id:'ap',name:'空氣清淨機'}];
 const catOf=id=>(REG[id]&&REG[id].cat)||'dh';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -66,10 +66,18 @@ const FINISH={
   white:null
 };
 FINISH.white=FINISH.ivory;   // 白色機種實際也是偏米色的白
+FINISH.sus={body:0xc3c8cc,body2:0xb6bbbf,metal:.86,rough:.3,env:1.3,brushed:true};   // 不鏽鋼（髮絲紋）
 FINISH.galv={body:0xa7adb2,body2:0x9da3a8,metal:.72,rough:.36,env:1.1,spangle:true};   // 鍍鋅鋼板（全熱交換器，實品照片）：偏灰＋鋅花
 /* galvanised spangle (鋅花): jittered-grid Voronoi crystals, each with its own brightness and a directional sheen; used as colour + roughness map.
    Box UVs run 1 tile per 400 mm, so a 40×40 grid gives ~10 mm crystals; low contrast like real hot-dip galvanised sheet. */
-let SPANGLE=null,LOGO_TEX=null;
+let SPANGLE=null,LOGO_TEX=null,BRUSH=null;
+/* brushed stainless (髮絲紋): fine horizontal streaks, colour + roughness map */
+function brushedTex(){if(BRUSH)return BRUSH;const S=512;
+  const mk=(rough)=>canvasTex(S,S,(g)=>{const d=g.createImageData(S,S),row=[];for(let y=0;y<S;y++)row.push((Math.random()-.5)*0.05);
+    for(let y=0;y<S;y++){let a=0;for(let x=0;x<S;x++){a=a*0.92+(Math.random()-.5)*0.06;const v0=0.94+row[y]+a*0.5;
+      const v=rough?Math.max(0,Math.min(255,(0.5-(v0-0.94)*2.5)*255)):Math.max(0,Math.min(255,v0*255));const k=(y*S+x)*4;d.data[k]=d.data[k+1]=d.data[k+2]=v;d.data[k+3]=255;}}
+    g.putImageData(d,0,0);},!rough);
+  const c=mk(false),r=mk(true);[c,r].forEach(t=>{t.wrapS=t.wrapT=T.RepeatWrapping;});BRUSH={c,r};return BRUSH;}
 function spangleTex(){if(SPANGLE)return SPANGLE;const N=40,S=512,cs=S/N,seeds=[];
   for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=Math.random()*PI;seeds.push({x:(i+.1+Math.random()*.8)*cs,y:(j+.1+Math.random()*.8)*cs,v:.93+Math.random()*.07,ca:Math.cos(a),sa:Math.sin(a),k:Math.random()});}
   const at=(i,j)=>seeds[((j+N)%N)*N+((i+N)%N)];
@@ -112,7 +120,7 @@ const mat={
 function applyFinish(name){
   const f=FINISH[name]||FINISH.black;
   [['body',f.body],['body2',f.body2]].forEach(([k,c])=>{const m=mat[k];m.color.set(c);lin(m.color);m.metalness=f.metal;m.roughness=f.rough;
-    const sp=f.spangle?spangleTex():null;m.map=sp?sp.c:null;m.roughnessMap=sp?sp.r:null;m.bumpMap=null;m.envMapIntensity=f.env;m.needsUpdate=true;});
+    const sp=f.spangle?spangleTex():f.brushed?brushedTex():null;m.map=sp?sp.c:null;m.roughnessMap=sp?sp.r:null;m.bumpMap=null;m.envMapIntensity=f.env;m.needsUpdate=true;});
 }
 
 /* ---------- geometry kit (plan mm: x along length, d from back to front, h up) ---------- */
@@ -475,7 +483,10 @@ function planFold(f,obs){
   const s1=slide(0,S1,0,0),t1=turn(s1,f.a1,0,1),s2=slide(s1,S,t1,0),t2=turn(s1+s2,f.a2,t1,2);
   return {s1,t1,s2,t2};
 }
-function renderPull(){
+const PULLHINT={dh:'按「側拉」會把濾網從側邊抽出，並轉到回風側方便觀看；三折式濾網會邊抽邊折（30°、45°）。接回風箱時，濾網從回風箱側面的抽取孔抽出。',
+  erv:'先按維修門「拆下」：螺絲轉開退出、門板退出漸隱；再分別抽出全熱交換芯體與 PM2.5 濾網。',
+  ap:'先按濾網門「拆下」：手轉螺絲與固定螺絲轉開、門板退出漸隱；五道濾網可各自從側邊抽出（由回風側起：不鏽鋼 → 中效 → 甲醛 → 活性碳 → PM2.5）。'};
+function renderPull(){{const ph=document.querySelector('.pullhint');if(ph&&current.id)ph.textContent=PULLHINT[catOf(current.id)]||PULLHINT.dh;}
   const box=$('pullBox');if(!box)return;box.hidden=!movers.length;if(!movers.length)return;
   $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+(mv.labels||[['in','收回','原位'],['side','側拉',mv.fold?'抽出 2/3・折疊':'50%']]).map(([id,n,sp])=>
     '<button type="button" class="chip" data-i="'+i+'" data-id="'+id+'" aria-pressed="'+((mv.state||'in')===id?'true':'false')+'"><b>'+n+'</b><span>'+sp+'</span></button>').join('')).join('');
@@ -577,6 +588,26 @@ function specRows(id,def){
     r('維修孔',id==='MH-D2DCPMTHZ'?'':'須預留 450 × 450','txt');
     r('濾網保養','每 90 天自行檢查是否須更新','txt');
     return rows;}
+  if(catOf(id)==='ap'){
+    r('外型尺寸 L×W×H',s.size?s.size.replace(/\*/g,' × ')+' mm <small>(含法蘭・控制盒)</small>':'');
+    r('電源',s.power,'txt');
+    r('風量（高／低）',s.cmh+' ／ '+s.cmh_lo+' CMH');
+    r('機外靜壓（高／低）',s.pa+' ／ '+s.pa_lo+' Pa');
+    r('消耗功率（高／低）',s.w+' ／ '+s.w_lo+' W');
+    r('運轉電流（高／低）',s.a+' ／ '+s.a_lo+' A');
+    r('噪音（高／低）',s.db+' ／ '+s.db_lo+' dB(A)');
+    r('製品重量',s.kg+' kg');
+    r('回風／出風法蘭','φ'+s.flange,'txt');
+    r('吊孔距',' 680 × 310 mm');
+    r('控制方式',s.control,'txt');
+    r('溫濕度顯示','●','txt');
+    r('紫外線殺菌燈','●（回風口）','txt');
+    r('五道濾網','不鏽鋼過濾網（可重複清洗）→ 中效過濾網 → 甲醛過濾網 → 立體活性碳纖 → 高性能 PM2.5 過濾網','txt');
+    r('附屬裝置','過熱斷電保護、濾網阻塞偵測、火災斷電（附乾接點）、啟停乾接點','txt');
+    r('選購裝置','WiFi APP 控制、空氣品質感測器（有線／無線）','txt');
+    r('機體材質',(def&&def.material)||s.body,'txt');
+    r('維修孔','須預留 600 以上（濾網門側）','txt');
+    return rows;}
   r('外型尺寸 W×D×H',s.size?s.size.replace(/\*/g,' × ')+' mm':'');
   r('除濕能力',s.cap30?s.cap30+' L/日 <small>(30℃/80%RH)</small>':'');
   r('',s.cap27?s.cap27+' L/日 <small>(27℃/60%RH)</small>':'');
@@ -603,7 +634,7 @@ function specRows(id,def){
 function renderSheet(id,def,v){
   const rows=specRows(id,def);
   $('specTable').innerHTML=rows.map(([k,v,c])=>'<dt>'+esc(k)+'</dt><dd'+(c?' class="'+c+'"':'')+'>'+v+'</dd>').join('');
-  {const erv=catOf(id)==='erv',ol=$('optList');ol.innerHTML=erv?'':(DATA.options||[]).map(o=>'<li>'+esc(o)+'</li>').join('');if(ol.parentElement)ol.parentElement.hidden=erv;}
+  {const erv=catOf(id)!=='dh',ol=$('optList');ol.innerHTML=erv?'':(DATA.options||[]).map(o=>'<li>'+esc(o)+'</li>').join('');if(ol.parentElement)ol.parentElement.hidden=erv;}
   $('note').textContent=(def&&def.note)||'此型號 3D 模型建置中，規格可先參考。';
   // variant picker
   const box=$('variantBox');
@@ -667,12 +698,13 @@ function selectText(){const r=document.createRange();r.selectNodeContents($('sha
 /* ---------- head ---------- */
 function renderHead(id){
   const s=DATA.specs[id]||{},def=REG[id];
-  const m=id.match(/^(MD-)(A?)(\d+)(.*)$/)||id.match(/^(MH-)()(D\d+)(.*)$/);
+  const m=id.match(/^(MD-)(A?)(\d+)(.*)$/)||id.match(/^(MH-)()(D\d+)(.*)$/)||id.match(/^(MDH-)(S?)(\d+)(.*)$/);
   $('modelName').innerHTML=m?esc(m[1]+m[2])+'<span>'+esc(m[3])+'</span>'+esc(m[4]):esc(id);
   $('modelName').classList.toggle('long',id.length>10);
   $('eyebrow').textContent='米多力・'+((def&&def.kind)||'吊隱式風管除濕機');
   const erv=catOf(id)==='erv';
-  $('kpis').innerHTML=(erv?[[s.cmh,'CMH','風量'],[s.te||'','%','溫度效率'],[s.w?String(s.w):'','W','輸入功率']]:[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']]).filter(k=>k[0]).map(k=>k[3]?
+  const ap=catOf(id)==='ap';
+  $('kpis').innerHTML=(ap?[[s.cmh,'CMH','風量'],[s.w,'W','消耗功率'],[s.db,'dB(A)','噪音']]:erv?[[s.cmh,'CMH','風量'],[s.te||'','%','溫度效率'],[s.w?String(s.w):'','W','輸入功率']]:[[s.cap30,'L/日','除濕能力'],[s.cmh,'CMH','風量'],[s.ef,'L/kWh','能源因數','ef']]).filter(k=>k[0]).map(k=>k[3]?
     '<button type="button" class="kpi-ef" id="btnEf" aria-expanded="false" aria-controls="efPop"><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+' <i aria-hidden="true">ⓘ</i></span></button>':
     '<div><b>'+esc(k[0])+'<small>'+k[1]+'</small></b><span>'+k[2]+'</span></div>').join('');
   /* 能源因數算法: EF = 除濕能力(27°C/60%, L/日) ÷ 消耗功率(W) × 1000 ÷ 24 */
@@ -739,8 +771,8 @@ function openPicker(){const pk=$('picker');pk.hidden=false;
 function closePicker(){const pk=$('picker');if(pk.hidden)return;pk.hidden=true;$('modelBtn').focus();}
 const capOf=id=>+(DATA.specs[id]||{}).cap30;
 const SIZE=[['小型 30–70 L/日','小型 30–70 L',id=>capOf(id)<=70],['中型 100–140 L/日','中型 100–140 L',id=>capOf(id)>70&&capOf(id)<=140],['大型 210–300 L/日','大型 210–300 L',id=>capOf(id)>140]];
-const GROUPS=SIZE.map(g=>[g[0],id=>catOf(id)==='dh'&&g[2](id)]).concat([['全熱交換器 DC-PM2.5 過濾系列',id=>catOf(id)==='erv']]);
-const PRESETS=SIZE.map(g=>[g[1],g[2]]).concat([['全熱交換器',id=>catOf(id)==='erv'],['全選',()=>true],['清除',()=>false]]);
+const GROUPS=SIZE.map(g=>[g[0],id=>catOf(id)==='dh'&&g[2](id)]).concat([['全熱交換器 DC-PM2.5 過濾系列',id=>catOf(id)==='erv'],['空氣清淨機・吊隱式風管清淨機',id=>catOf(id)==='ap']]);
+const PRESETS=SIZE.map(g=>[g[1],g[2]]).concat([['全熱交換器',id=>catOf(id)==='erv'],['空氣清淨機',id=>catOf(id)==='ap'],['全選',()=>true],['清除',()=>false]]);
 let curCat='dh';const lastOfCat={};
 function renderCats(){const el=$('catSeg');if(!el||!MULTI)return;const pool=POOL(),avail=CATS.filter(c=>pool.some(id=>catOf(id)===c.id));
   el.hidden=avail.length<2||SOLO;
@@ -757,7 +789,7 @@ function renderPicker(){
     return '<li class="pk-group"><h3>'+esc(title)+'</h3><ul>'+items.map(id=>{const s=DATA.specs[id]||{},def=REG[id];
       const n=def?(def.variants&&!def.variants.fixed?variantKeys(def).length+' 種組合':'標配'):'建模中';
       return '<li><button type="button" class="pk" data-id="'+esc(id)+'"><span class="pk-sw '+esc(def?def.finish:'')+'" aria-hidden="true"></span><b>'+esc(id)+'</b>'+
-        '<span class="pk-meta">'+(catOf(id)==='erv'?esc(s.cmh)+' CMH・'+esc(s.inch)+'" 風管':esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH')+'</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
+        '<span class="pk-meta">'+(catOf(id)==='erv'?esc(s.cmh)+' CMH・'+esc(s.inch)+'" 風管':catOf(id)==='ap'?esc(s.cmh)+' CMH・'+(REG[id]&&REG[id].finish==='sus'?'不鏽鋼':'鍍鋅米白'):esc(s.cap30||'—')+' L/日・'+esc(s.cmh||'—')+' CMH')+'</span><span class="pk-n">'+esc(n)+'</span><span class="pk-ck" aria-hidden="true"></span></button></li>';}).join('')+'</ul></li>';}).join('');
   document.querySelectorAll('#pickerList .pk').forEach(b=>b.onclick=()=>{
     if(picking){const id=b.dataset.id;if(picking.has(id))picking.delete(id);else picking.add(id);syncPicking();return;}
     closePicker();select(b.dataset.id,null,true);});
