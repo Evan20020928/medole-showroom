@@ -66,7 +66,7 @@ const FINISH={
   white:null
 };
 FINISH.white=FINISH.ivory;   // 白色機種實際也是偏米色的白
-FINISH.sus={body:0xdfe3e6,body2:0xd6dadd,metal:.95,rough:.22,env:1.8,brushed:true};   // 亮面不鏽鋼（實品照片：高反光、極細拉絲）
+FINISH.sus={body:0xe4e8eb,body2:0xdde1e4,metal:1,rough:.3,env:1.15,brushed:true,mirror:true};   // 亮面不鏽鋼（實品照片：高反光、極細拉絲）
 FINISH.galv={body:0xa7adb2,body2:0x9da3a8,metal:.72,rough:.36,env:1.1,spangle:true};   // 鍍鋅鋼板（全熱交換器，實品照片）：偏灰＋鋅花
 /* galvanised spangle (鋅花): jittered-grid Voronoi crystals, each with its own brightness and a directional sheen; used as colour + roughness map.
    Box UVs run 1 tile per 400 mm, so a 40×40 grid gives ~10 mm crystals; low contrast like real hot-dip galvanised sheet. */
@@ -75,7 +75,7 @@ let SPANGLE=null,LOGO_TEX=null,BRUSH=null;
 function brushedTex(){if(BRUSH)return BRUSH;const S=512;
   const mk=(rough)=>canvasTex(S,S,(g)=>{const d=g.createImageData(S,S),row=[];for(let y=0;y<S;y++)row.push((Math.random()-.5)*0.05);
     for(let y=0;y<S;y++){let a=0;for(let x=0;x<S;x++){a=a*0.92+(Math.random()-.5)*0.06;const v0=0.96+row[y]*0.35+a*0.18;
-      const v=rough?Math.max(0,Math.min(255,(0.5-(v0-0.94)*2.5)*255)):Math.max(0,Math.min(255,v0*255));const k=(y*S+x)*4;d.data[k]=d.data[k+1]=d.data[k+2]=v;d.data[k+3]=255;}}
+      const v=rough?Math.max(0,Math.min(255,(0.5-(v0-0.96)*1.2)*255)):Math.max(0,Math.min(255,v0*255));const k=(y*S+x)*4;d.data[k]=d.data[k+1]=d.data[k+2]=v;d.data[k+3]=255;}}
     g.putImageData(d,0,0);},!rough);
   const c=mk(false),r=mk(true);[c,r].forEach(t=>{t.wrapS=t.wrapT=T.RepeatWrapping;});BRUSH={c,r};return BRUSH;}
 function spangleTex(){if(SPANGLE)return SPANGLE;const N=40,S=512,cs=S/N,seeds=[];
@@ -117,10 +117,20 @@ const mat={
   carbonTab:new T.MeshStandardMaterial({color:lin(new T.Color(0x141414)),metalness:0,roughness:.95,side:T.DoubleSide}),   // 黑色布拉片
   drain:new T.MeshStandardMaterial({color:lin(new T.Color(0xd5d9dd)),metalness:.45,roughness:.32,envMapIntensity:1.3})   // 排水頭：銀色金屬
 };
+/* studio reflection map for polished stainless (亮面不鏽鋼): bright ceiling, white softbox strips, light walls, darker floor — only the stainless finish uses it */
+let STUDIO_ENV=null;
+function studioEnv(){if(STUDIO_ENV)return STUDIO_ENV;
+  const sc=new T.Scene(),sky=canvasTex(64,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#ffffff');gr.addColorStop(.35,'#eef2f5');gr.addColorStop(.5,'#d3d9de');gr.addColorStop(.6,'#aab2b9');gr.addColorStop(1,'#7d858c');g.fillStyle=gr;g.fillRect(0,0,w,h);},true);
+  sc.add(new T.Mesh(new T.SphereGeometry(10,48,24),new T.MeshBasicMaterial({map:sky,side:T.BackSide})));
+  const box=(w,h,x,y,z,ry,rx,c)=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({color:new T.Color(c||0xffffff).multiplyScalar(2.2),side:T.DoubleSide}));m.position.set(x,y,z);m.rotation.set(rx||0,ry||0,0);sc.add(m);};
+  box(9,1.2,0,6,0,0,PI/2);box(9,1.2,0,6,3,0,PI/2);box(9,1.2,0,6,-3,0,PI/2);      // ceiling strips
+  box(2.4,4.5,-7,1.8,2,PI/2);box(2.4,4.5,7,1.8,-2,-PI/2);box(5,3.2,0,1.6,8,PI);  // side + back softboxes
+  box(3,4,2.5,1.2,-7.5,0,0,0x1c2024);box(1.6,4,-8,1.2,-3.5,PI/2,0,0x2a2e33);box(1.6,4,8,1.2,3.5,-PI/2,0,0x2a2e33);                                              // dark panel → contrast streaks
+  const pm=new T.PMREMGenerator(renderer);STUDIO_ENV=pm.fromScene(sc,0.02).texture;pm.dispose();return STUDIO_ENV;}
 function applyFinish(name){
   const f=FINISH[name]||FINISH.black;
   [['body',f.body],['body2',f.body2]].forEach(([k,c])=>{const m=mat[k];m.color.set(c);lin(m.color);m.metalness=f.metal;m.roughness=f.rough;
-    const sp=f.spangle?spangleTex():f.brushed?brushedTex():null;m.map=sp?sp.c:null;m.roughnessMap=sp?sp.r:null;m.bumpMap=null;m.envMapIntensity=f.env;m.needsUpdate=true;});
+    const sp=f.spangle?spangleTex():f.brushed?brushedTex():null;m.map=sp?sp.c:null;m.roughnessMap=sp?sp.r:null;m.bumpMap=null;m.envMap=f.mirror?studioEnv():null;m.envMapIntensity=f.env;m.needsUpdate=true;});
 }
 
 /* ---------- geometry kit (plan mm: x along length, d from back to front, h up) ---------- */
