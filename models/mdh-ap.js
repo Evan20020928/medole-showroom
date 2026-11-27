@@ -53,11 +53,12 @@ function build(K,id){
     K.tag(fx+sx*(FL+4),hc+R+30,0,[sx,0,0],code,name,'6"（150mm）');});
   /* 吊耳 ×4：機體兩端 L 型吊架，吊孔 680 × 310；耳板離機底 25（型錄圖），吊孔往外端開口（鎖孔形：圓孔＋窄頸開到端緣），牙條可從外端滑入 */
   /* 吊耳 ×4（型錄外觀尺寸圖）：L 型吊架鎖在機體兩端面，立邊由機底往上，耳板頂面離機底 83；
-     吊孔距 680 × 310，耳板外伸至約 362；開孔 = 圓孔＋往外端的窄縫（俯視圖黃框），牙條可從外端滑入 */
+     吊孔距 680 × 310，耳板外伸至約 362；開孔 = T 形（橫向圓頭長孔＋往外端窄縫），外端往下折一段立邊，牙條可從外端滑入 */
   const EH=83,ET=2.5;
   [1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*340,hd=sd*155,tip=sx*362,a=Math.min(face,tip),b=Math.max(face,tip),d0=hd-22,d1=Math.min(W/2,hd+22)*(sd>0?1:1);
     const e0=sd>0?hd-22:Math.max(-W/2,hd-22),e1=sd>0?Math.min(W/2,hd+22):hd+22;
-    K.plateCut(a,b,e0,e1,EH-ET,EH,[{x:hx,d:hd,r:6.5,nw:2.2,dir:sx>0?'+x':'-x'}],m.body2);
+    const NW=2.6;K.plateCut(a,b,e0,e1,EH-ET,EH,[{x:hx,d:hd,r:6,nw:NW,lr:0,ha:12,rh:5,dir:sx>0?'+x':'-x'}],m.body2);   // T 形開孔：橫向圓頭長孔＋往外端窄縫
+    [[e0,hd-NW],[hd+NW,e1]].forEach(([q0,q1])=>K.box(Math.min(tip,tip-sx*ET),Math.max(tip,tip-sx*ET),EH-22,EH-ET,q0,q1,m.body2));   // 耳板外端往下折的立邊（被窄縫分成兩片）
     K.box(Math.min(face,face+sx*ET),Math.max(face,face+sx*ET),4,EH-ET,e0,e1,m.body2);}));
   /* 殺菌燈座：前側近回風端的小蓋板＋4 顆螺絲 */
   {const cx=x0+38,hc=120;K.box(cx-28,cx+28,hc-48,hc+48,dF,dF+2.5,m.body2,2);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(cx+a*19,hc+b*38,dF+2.5,1,2.6,m.body));
