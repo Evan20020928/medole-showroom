@@ -103,6 +103,14 @@ function build(K,id){
   const fh=ah1-ah0-14,fd0=dB+16,fd1=dF-2,fdep=fd1-fd0,fhc=H/2;
   const spec=[['不鏽鋼過濾網（可重複清洗）',20,fm.sus,fm.frameSus],['中效過濾網',25,fm.mid,fm.frameBlk],['甲醛過濾網',8,fm.hcho,fm.frameBlk],
               ['立體活性碳纖',25,fm.carbon,fm.frameBlk],['高性能 PM2.5 過濾網',45,fm.pm,fm.frameBlk]];
+  /* 濾網側邊白色貼標（直式）：米多力＋濾網名稱；甲醛濾網不貼 */
+  const LABELS=['米多力不鏽鋼過濾網','米多力中效過濾網','','米多力活性碳過濾網','米多力高效過濾網|PM2.5'];
+  const labelMat=(txt,lw,lh)=>{const k=12,W=Math.round(lw*k),Hh=Math.round(lh*k),[main,sub]=txt.split('|'),ch=[...main];
+    const t=tex(W,Hh,(g)=>{g.fillStyle='#f4f5f2';g.fillRect(0,0,W,Hh);g.fillStyle='#0e6f78';g.fillRect(0,0,W,Math.max(4,Hh*0.012));
+      const subH=sub?W*0.42:0,fs=Math.min(W*0.72,(Hh*0.9-subH)/ch.length);g.textAlign='center';g.textBaseline='middle';
+      ch.forEach((c,j)=>{g.fillStyle=j<3?'#0e6f78':'#1b2526';g.font=(j<3?'800 ':'700 ')+fs+'px "Noto Sans TC", sans-serif';g.fillText(c,W/2,Hh*0.05+fs*(j+0.5));});
+      if(sub){g.fillStyle='#1b2526';g.font='800 '+Math.min(W*0.3,subH*0.8)+'px Archivo, Arial, sans-serif';g.fillText(sub,W/2,Hh*0.05+fs*ch.length+subH*0.55);}});
+    t.wrapS=t.wrapT=TH.ClampToEdgeWrapping;return new TH.MeshStandardMaterial({map:t,roughness:.6});};
   const tot=spec.reduce((a,s)=>a+s[1],0)+8*(spec.length-1);let fx=ax0+((ax1-ax0)-tot)/2;
   const movers=[doorMv];
   spec.forEach(([name,t,face,frame],i)=>{const xa=fx,xb=fx+t;fx=xb+8;
@@ -111,7 +119,7 @@ function build(K,id){
       const fr=(a0,a1,h0,h1,d0,d1)=>{const b=new TH.Mesh(new TH.BoxGeometry(a1-a0,h1-h0,d1-d0),frame);b.position.set(K.cx((a0+a1)/2),(h0+h1)/2,K.cz((d0+d1)/2));b.castShadow=true;K.addMesh(b);};
       if(t>10){fr(xa,xb,fhc-fh/2,fhc-fh/2+5,fd0,fd1);fr(xa,xb,fhc+fh/2-5,fhc+fh/2,fd0,fd1);fr(xa,xb,fhc-fh/2,fhc+fh/2,fd1-5,fd1);fr(xa,xb,fhc-fh/2,fhc+fh/2,fd0,fd0+5);}
       else{const tab=new TH.Mesh(new TH.BoxGeometry(t+2,40,18),fm.frameBlk);tab.position.set(K.cx((xa+xb)/2),fhc,K.cz(fd1-9));K.addMesh(tab);}   // 甲醛網：黑色拉帶
-      if(t>10){const lb=new TH.Mesh(new TH.PlaneGeometry(Math.max(6,t-8),fh*0.55),m.label);lb.position.set(K.cx((xa+xb)/2),fhc,K.cz(fd1+0.6));K.addMesh(lb);}});   // 濾網側邊白色標籤
+      if(t>10){const lw=Math.max(6,t-8),lh=fh*0.7,lb=new TH.Mesh(new TH.PlaneGeometry(lw,lh),labelMat(LABELS[i],lw,lh));lb.position.set(K.cx((xa+xb)/2),fhc,K.cz(fd1+0.6));K.addMesh(lb);}});   // 濾網側邊白色標籤
     movers.push({kind:'slideD',name:name,g,dist:fdep*(0.42+i*0.07),door:doorMv,view:0.3,labels:[['in','收回','原位'],['side','抽出','側拉']]});});
   movers.forEach(mv=>K.movers.push(mv));
 
