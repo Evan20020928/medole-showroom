@@ -52,10 +52,13 @@ function build(K,id){
       const gl=new TH.Mesh(new TH.CircleGeometry(R-3,48),fm.glow);gl.rotation.y=-Math.PI/2;gl.position.set(K.cx(fx-FL+8),hc,K.cz(0));gl.renderOrder=3;K.addMesh(gl);}
     K.tag(fx+sx*(FL+4),hc+R+30,0,[sx,0,0],code,name,'6"（150mm）');});
   /* 吊耳 ×4：機體兩端 L 型吊架，吊孔 680 × 310；耳板離機底 25（型錄圖），吊孔往外端開口（鎖孔形：圓孔＋窄頸開到端緣），牙條可從外端滑入 */
-  /* 平板吊耳貼齊機底、由機底往外伸出（使用者示意圖）；不做立邊 */
-  const ET=2.5;
-  [1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*(L/2-45),hx=sx*340,hd=sd*155,tip=sx*(340+20),a=Math.min(face,tip),b=Math.max(face,tip);
-    K.plateCut(a,b,hd-19,hd+19,0.4,ET+0.4,[{x:hx,d:hd,r:7,nw:4,dir:sx>0?'+x':'-x'}],m.body2);}));
+  /* 吊耳 ×4（型錄外觀尺寸圖）：L 型吊架鎖在機體兩端面，立邊由機底往上，耳板頂面離機底 83；
+     吊孔距 680 × 310，耳板外伸至約 362；開孔 = 圓孔＋往外端的窄縫（俯視圖黃框），牙條可從外端滑入 */
+  const EH=83,ET=2.5;
+  [1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*340,hd=sd*155,tip=sx*362,a=Math.min(face,tip),b=Math.max(face,tip),d0=hd-22,d1=Math.min(W/2,hd+22)*(sd>0?1:1);
+    const e0=sd>0?hd-22:Math.max(-W/2,hd-22),e1=sd>0?Math.min(W/2,hd+22):hd+22;
+    K.plateCut(a,b,e0,e1,EH-ET,EH,[{x:hx,d:hd,r:6.5,nw:2.2,dir:sx>0?'+x':'-x'}],m.body2);
+    K.box(Math.min(face,face+sx*ET),Math.max(face,face+sx*ET),4,EH-ET,e0,e1,m.body2);}));
   /* 殺菌燈座：前側近回風端的小蓋板＋4 顆螺絲 */
   {const cx=x0+38,hc=120;K.box(cx-28,cx+28,hc-48,hc+48,dF,dF+2.5,m.body2,2);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(cx+a*19,hc+b*38,dF+2.5,1,2.6,m.body));
    K.tag(cx,hc+70,dF+3,[0,0,1],'UV','紫外線殺菌燈座');}
