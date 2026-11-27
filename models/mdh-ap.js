@@ -105,11 +105,11 @@ function build(K,id){
               ['立體活性碳纖',25,fm.carbon,fm.frameBlk],['高性能 PM2.5 過濾網',45,fm.pm,fm.frameBlk]];
   /* 濾網側邊白色貼標（直式）：米多力＋濾網名稱；甲醛濾網不貼 */
   const LABELS=['米多力不鏽鋼過濾網','米多力中效過濾網','','米多力活性碳過濾網','米多力高效過濾網|PM2.5'];
-  const labelMat=(txt,lw,lh)=>{const k=12,W=Math.round(lw*k),Hh=Math.round(lh*k),[main,sub]=txt.split('|'),ch=[...main];
-    const t=tex(W,Hh,(g)=>{g.fillStyle='#f4f5f2';g.fillRect(0,0,W,Hh);g.fillStyle='#0e6f78';g.fillRect(0,0,W,Math.max(4,Hh*0.012));
-      const subH=sub?W*0.42:0,fs=Math.min(W*0.72,(Hh*0.9-subH)/ch.length);g.textAlign='center';g.textBaseline='middle';
-      ch.forEach((c,j)=>{g.fillStyle=j<3?'#0e6f78':'#1b2526';g.font=(j<3?'800 ':'700 ')+fs+'px "Noto Sans TC", sans-serif';g.fillText(c,W/2,Hh*0.05+fs*(j+0.5));});
-      if(sub){g.fillStyle='#1b2526';g.font='800 '+Math.min(W*0.3,subH*0.8)+'px Archivo, Arial, sans-serif';g.fillText(sub,W/2,Hh*0.05+fs*ch.length+subH*0.55);}});
+  const labelMat=(txt,lw,lh)=>{const k=14,W=Math.round(lw*k),Hh=Math.round(lh*k),[main,sub]=txt.split('|'),ch=[...main];
+    const t=tex(W,Hh,(g)=>{g.fillStyle='#f4f5f2';g.fillRect(0,0,W,Hh);   // 統一字級（約 6 mm）、統一黑字，直式由上往下
+      const fs=6*k,y0=Hh*0.08;g.textAlign='center';g.textBaseline='middle';g.fillStyle='#222526';
+      g.font='600 '+fs+'px "Noto Sans TC", sans-serif';ch.forEach((c,j)=>g.fillText(c,W/2,y0+fs*1.05*(j+0.5)));
+      if(sub){g.font='600 '+fs+'px "Noto Sans TC", Arial, sans-serif';g.fillText(sub,W/2,y0+fs*1.05*(ch.length+0.9));}});
     t.wrapS=t.wrapT=TH.ClampToEdgeWrapping;return new TH.MeshStandardMaterial({map:t,roughness:.6});};
   const tot=spec.reduce((a,s)=>a+s[1],0)+8*(spec.length-1);let fx=ax0+((ax1-ax0)-tot)/2;
   const movers=[doorMv];
