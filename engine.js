@@ -66,7 +66,7 @@ const FINISH={
   white:null
 };
 FINISH.white=FINISH.ivory;   // 白色機種實際也是偏米色的白
-FINISH.sus={body:0xc3c8cc,body2:0xb6bbbf,metal:.86,rough:.3,env:1.3,brushed:true};   // 不鏽鋼（髮絲紋）
+FINISH.sus={body:0xdfe3e6,body2:0xd6dadd,metal:.95,rough:.22,env:1.8,brushed:true};   // 亮面不鏽鋼（實品照片：高反光、極細拉絲）
 FINISH.galv={body:0xa7adb2,body2:0x9da3a8,metal:.72,rough:.36,env:1.1,spangle:true};   // 鍍鋅鋼板（全熱交換器，實品照片）：偏灰＋鋅花
 /* galvanised spangle (鋅花): jittered-grid Voronoi crystals, each with its own brightness and a directional sheen; used as colour + roughness map.
    Box UVs run 1 tile per 400 mm, so a 40×40 grid gives ~10 mm crystals; low contrast like real hot-dip galvanised sheet. */
@@ -74,7 +74,7 @@ let SPANGLE=null,LOGO_TEX=null,BRUSH=null;
 /* brushed stainless (髮絲紋): fine horizontal streaks, colour + roughness map */
 function brushedTex(){if(BRUSH)return BRUSH;const S=512;
   const mk=(rough)=>canvasTex(S,S,(g)=>{const d=g.createImageData(S,S),row=[];for(let y=0;y<S;y++)row.push((Math.random()-.5)*0.05);
-    for(let y=0;y<S;y++){let a=0;for(let x=0;x<S;x++){a=a*0.92+(Math.random()-.5)*0.06;const v0=0.94+row[y]+a*0.5;
+    for(let y=0;y<S;y++){let a=0;for(let x=0;x<S;x++){a=a*0.92+(Math.random()-.5)*0.06;const v0=0.96+row[y]*0.35+a*0.18;
       const v=rough?Math.max(0,Math.min(255,(0.5-(v0-0.94)*2.5)*255)):Math.max(0,Math.min(255,v0*255));const k=(y*S+x)*4;d.data[k]=d.data[k+1]=d.data[k+2]=v;d.data[k+3]=255;}}
     g.putImageData(d,0,0);},!rough);
   const c=mk(false),r=mk(true);[c,r].forEach(t=>{t.wrapS=t.wrapT=T.RepeatWrapping;});BRUSH={c,r};return BRUSH;}
@@ -485,7 +485,7 @@ function planFold(f,obs){
 }
 const PULLHINT={dh:'按「側拉」會把濾網從側邊抽出，並轉到回風側方便觀看；三折式濾網會邊抽邊折（30°、45°）。接回風箱時，濾網從回風箱側面的抽取孔抽出。',
   erv:'先按維修門「拆下」：螺絲轉開退出、門板退出漸隱；再分別抽出全熱交換芯體與 PM2.5 濾網。',
-  ap:'先按濾網門「拆下」：手轉螺絲與固定螺絲轉開、門板退出漸隱；五道濾網可各自從側邊抽出（由回風側起：不鏽鋼 → 中效 → 甲醛 → 活性碳 → PM2.5）。'};
+  ap:'先按維修門「卸下」：兩顆黑色旋鈕轉開，握不鏽鋼把手把整片門取下；五道濾網可各自從側邊抽出（由回風側起：不鏽鋼 → 中效 → 甲醛 → 活性碳 → PM2.5）。'};
 function renderPull(){{const ph=document.querySelector('.pullhint');if(ph&&current.id)ph.textContent=PULLHINT[catOf(current.id)]||PULLHINT.dh;}
   const box=$('pullBox');if(!box)return;box.hidden=!movers.length;if(!movers.length)return;
   $('pullRows').innerHTML=movers.map((mv,i)=>'<div class="portlbl">'+esc(mv.name)+'</div>'+(mv.labels||[['in','收回','原位'],['side','側拉',mv.fold?'抽出 2/3・折疊':'50%']]).map(([id,n,sp])=>

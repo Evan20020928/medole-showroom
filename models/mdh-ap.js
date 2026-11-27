@@ -50,10 +50,11 @@ function build(K,id){
     if(sx<0){K.rod('z',7,fx-24,hc+22,0,R*1.5,fm.uv,18);K.rod('z',7,fx-24,hc-22,0,R*1.5,fm.uv,18);   // UV 殺菌燈管（藍光，回風口內）
       const gl=new TH.Mesh(new TH.CircleGeometry(R-3,48),fm.glow);gl.rotation.y=-Math.PI/2;gl.position.set(K.cx(fx-FL+8),hc,K.cz(0));gl.renderOrder=3;K.addMesh(gl);}
     K.tag(fx+sx*(FL+4),hc+R+30,0,[sx,0,0],code,name,'6"（150mm）');});
-  /* 吊耳 ×4：機體兩端底部 L 型吊架，吊孔 680 × 310 */
-  [1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*340,hd=sd*155,tip=sx*(340+17),a=Math.min(face,tip),b=Math.max(face,tip);
-    K.plateCut(a,b,hd-16,hd+16,0,3,[],m.body2,[{x:hx,d:hd,r:5.5}]);
-    K.box(Math.min(face,face+sx*3),Math.max(face,face+sx*3),0,50,hd-16,hd+16,m.body2);}));
+  /* 吊耳 ×4：機體兩端 L 型吊架，吊孔 680 × 310；耳板離機底 25（型錄圖），吊孔往外端開口（鎖孔形：圓孔＋窄頸開到端緣），牙條可從外端滑入 */
+  const EH=25,ET=2.5;
+  [1,-1].forEach(sx=>[1,-1].forEach(sd=>{const face=sx*L/2,hx=sx*340,hd=sd*155,tip=sx*(340+19),a=Math.min(face,tip),b=Math.max(face,tip);
+    K.plateCut(a,b,hd-18,hd+18,EH-ET,EH,[{x:hx,d:hd,r:6.5,nw:4,dir:sx>0?'+x':'-x'}],m.body2);
+    K.box(Math.min(face,face+sx*ET),Math.max(face,face+sx*ET),EH-ET,EH+55,hd-18,hd+18,m.body2);}));
   /* 殺菌燈座：前側近回風端的小蓋板＋4 顆螺絲 */
   {const cx=x0+38,hc=120;K.box(cx-28,cx+28,hc-48,hc+48,dF,dF+2.5,m.body2,2);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>K.screw(cx+a*19,hc+b*38,dF+2.5,1,2.6,m.body));
    K.tag(cx,hc+70,dF+3,[0,0,1],'UV','紫外線殺菌燈座');}
@@ -62,7 +63,15 @@ function build(K,id){
   K.box(cb.x0,cb.x1,46,H-6,dF,dF+CBD,m.body2,3);
   [[cb.x0+12,58],[cb.x1-12,58],[cb.x0+12,H-18],[cb.x1-12,H-18]].forEach(([x,h])=>K.screw(x,h,dF+CBD,1,3,m.body));
   [cb.x0+50,cb.x0+90].forEach(x=>K.rod('y',7,x,40,dF+CBD*0.5,10,m.ctrl,16));       // 出線孔
-  K.box(cb.x1-70,cb.x1-20,H/2-34,H/2+34,dF+CBD,dF+CBD+0.6,m.label);                 // 銘牌貼紙
+  {const lw=120,lh=76,lx=cb.x1-20-lw/2,ly=H/2+2;   // 型號銘牌（白色貼紙上印型號與規格）
+   const t=tex(600,380,(g,W,Hh)=>{g.fillStyle='#f4f5f2';g.fillRect(0,0,W,Hh);g.fillStyle='#0e6f78';g.fillRect(0,0,W,16);
+     g.fillStyle='#132022';g.font='800 92px Archivo, "Noto Sans TC", sans-serif';g.textBaseline='middle';g.fillText(id,30,92);
+     g.fillStyle='#33464a';g.font='600 40px "Noto Sans TC", sans-serif';g.fillText('吊隱式風管清淨機',30,172);
+     g.font='500 32px "Noto Sans TC", sans-serif';g.fillStyle='#55686a';
+     ['風量 320 CMH　靜壓 240 Pa','220 V／60 Hz　60 W　0.26 A','米多力 MEDOLE'].forEach((l,i)=>g.fillText(l,30,236+i*48));
+     g.strokeStyle='#c9cfcf';g.lineWidth=3;g.strokeRect(1.5,1.5,W-3,Hh-3);});
+   t.wrapS=t.wrapT=TH.ClampToEdgeWrapping;
+   K.box(lx-lw/2,lx+lw/2,ly-lh/2,ly+lh/2,dF+CBD,dF+CBD+0.5,m.label);K.decal(lx,ly,dF+CBD+0.8,lw-2,lh-2,'z+',t);}
   K.tag((cb.x0+cb.x1)/2,H+24,dF+CBD,[0,0,1],'CB','控制盒');
 
   /* ---------- 濾網門（螺絲固定，可拆）＋五道濾網 ---------- */
@@ -72,8 +81,12 @@ function build(K,id){
     [ax0-8,ax1].forEach(x=>K.box(x,x+8,ah0-4,ah1+4,dF+0.3,dF+5,m.body2,1.5));      // 門兩側折邊
     {const lw=Math.min(130,(ax1-ax0)*0.55),lh=lw*71/351,lx=(ax0+ax1)/2-22,ly=ah1-30;   // 白底標牌＋LOGO
      K.box(lx-lw/2-9,lx+lw/2+9,ly-lh/2-7,ly+lh/2+7,dF+3,dF+3.8,m.label);K.logo(lx,ly,dF+3.9,lw,'z+');}});
-  /* 黑色手轉螺絲 ×2（門右緣上下）＋左緣固定螺絲 ×2 */
-  const screws=[];[[ax1+4,ah0+26],[ax1+4,ah1-26],[ax0-4,ah0+26],[ax0-4,ah1-26]].forEach(([x,h],i)=>{const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+5));
+  /* 不鏽鋼把手（兩顆旋鈕中間）：旋鈕轉開後握把手把整片門卸下 */
+  door.add(K.group(()=>{const hx=ax1+4,hy=H/2,sp=26,pz=dF+5;
+    [-1,1].forEach(k=>{K.rod('z',3.6,hx,hy+k*sp,pz+9,18,m.inox,18);K.rod('z',6,hx,hy+k*sp,pz+1,2,m.inox,24);});
+    K.rod('y',4.2,hx,hy,pz+19,2*sp+8.4,m.inox,20);[-1,1].forEach(k=>{const b=new TH.Mesh(new TH.SphereGeometry(4.2,16,12),m.inox);b.position.set(K.cx(hx),hy+k*sp,K.cz(pz+19));K.addMesh(b);});}));
+  /* 黑色壓花手轉旋鈕 ×2（門右緣上下）；不另用螺絲，旋鈕轉開即可整片卸下 */
+  const screws=[];[[ax1+4,ah0+30],[ax1+4,ah1-30]].forEach(([x,h],i)=>{const sg=new TH.Group();sg.position.set(K.cx(x),h,K.cz(dF+5));
     if(i<2){const kn=new TH.Mesh(new TH.CylinderGeometry(8,8,9,20),m.ctrl);kn.rotation.x=Math.PI/2;kn.position.z=4.5;sg.add(kn);
       for(let k=0;k<12;k++){const rb=new TH.Mesh(new TH.BoxGeometry(1.6,2.4,9),m.ctrl);const a=k*Math.PI/6;rb.position.set(8*Math.cos(a),8*Math.sin(a),4.5);rb.rotation.z=a;sg.add(rb);}}   // 壓花手轉頭
     else{const prof=[[0.01,1.9],[2.6,1.9],[3.8,1.6],[4.5,1.0],[4.7,0.3],[4.7,0]].map(([r,z])=>new TH.Vector2(r,z)).reverse();
@@ -83,7 +96,7 @@ function build(K,id){
     for(let k=0;k<7;k++){const th=new TH.Mesh(new TH.TorusGeometry(1.95-k*0.07,0.3,6,16),m.steel);th.position.z=-1.2-k*1.6;th.userData.shank=1;sg.add(th);}
     door.add(sg);screws.push(sg);});
   door.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.userData.op=o.material.opacity;o.userData.tr=o.material.transparent;}});
-  const doorMv={kind:'door',name:'濾網門（螺絲固定）',g:door,screws,view:0.3,labels:[['in','裝回','鎖上螺絲'],['side','拆下','轉開螺絲・退出']]};
+  const doorMv={kind:'door',name:'維修門（手轉旋鈕）',g:door,screws,view:0.3,labels:[['in','裝回','鎖上旋鈕'],['side','卸下','轉開旋鈕・握把手取下']]};
 
   /* five filters: vertical plates across the airflow, sliding out through the door (+d) */
   const fh=ah1-ah0-14,fd0=dB+16,fd1=dF-2,fdep=fd1-fd0,fhc=H/2;
